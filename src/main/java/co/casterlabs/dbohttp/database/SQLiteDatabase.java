@@ -1,4 +1,4 @@
-package co.casterlabs.dbohttp.daemon.database;
+package co.casterlabs.dbohttp.database;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -13,8 +13,8 @@ import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
 
-import co.casterlabs.dbohttp.daemon.config.DatabaseConfig;
-import co.casterlabs.dbohttp.daemon.util.MarshallingContext;
+import co.casterlabs.dbohttp.config.DatabaseConfig;
+import co.casterlabs.dbohttp.util.MarshallingContext;
 import co.casterlabs.rakurai.json.element.JsonArray;
 import co.casterlabs.rakurai.json.element.JsonElement;
 import co.casterlabs.rakurai.json.element.JsonNull;

@@ -1,4 +1,4 @@
-package co.casterlabs.dbohttp.daemon.config;
+package co.casterlabs.dbohttp.config;
 
 import co.casterlabs.rakurai.json.annotating.JsonClass;
 import lombok.ToString;

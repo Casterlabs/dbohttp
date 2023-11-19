@@ -1,9 +1,9 @@
-package co.casterlabs.dbohttp.daemon;
+package co.casterlabs.dbohttp;
 
-import co.casterlabs.dbohttp.daemon.config.DatabaseConfig;
-import co.casterlabs.dbohttp.daemon.database.Database;
-import co.casterlabs.dbohttp.daemon.database.SQLiteDatabase;
-import co.casterlabs.dbohttp.daemon.util.MarshallingContext;
+import co.casterlabs.dbohttp.config.DatabaseConfig;
+import co.casterlabs.dbohttp.database.Database;
+import co.casterlabs.dbohttp.database.SQLiteDatabase;
+import co.casterlabs.dbohttp.util.MarshallingContext;
 import co.casterlabs.rakurai.json.element.JsonArray;
 
 public class Test {

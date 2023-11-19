@@ -1,4 +1,4 @@
-package co.casterlabs.dbohttp.daemon.config;
+package co.casterlabs.dbohttp.config;
 
 import java.net.URI;
 import java.net.http.HttpRequest;
@@ -6,8 +6,8 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import co.casterlabs.dbohttp.daemon.config.AlertConfig.Alert;
-import co.casterlabs.dbohttp.daemon.util.Misc;
+import co.casterlabs.dbohttp.config.AlertConfig.Alert;
+import co.casterlabs.dbohttp.util.Misc;
 import co.casterlabs.rakurai.json.annotating.JsonClass;
 import co.casterlabs.rakurai.json.annotating.JsonExclude;
 import co.casterlabs.rakurai.json.element.JsonObject;

@@ -1,9 +1,9 @@
-package co.casterlabs.dbohttp.daemon.util;
+package co.casterlabs.dbohttp.util;
 
 import java.sql.Blob;
 import java.sql.SQLException;
 
-import co.casterlabs.dbohttp.daemon.database.QueryMarshallingException;
+import co.casterlabs.dbohttp.database.QueryMarshallingException;
 import co.casterlabs.rakurai.json.Rson;
 import co.casterlabs.rakurai.json.annotating.JsonClass;
 import co.casterlabs.rakurai.json.element.JsonArray;

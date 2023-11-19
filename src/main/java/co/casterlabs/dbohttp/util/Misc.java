@@ -1,4 +1,4 @@
-package co.casterlabs.dbohttp.daemon.util;
+package co.casterlabs.dbohttp.util;
 
 import java.net.http.HttpClient;
 import java.net.http.HttpClient.Redirect;

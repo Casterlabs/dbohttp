@@ -1,4 +1,4 @@
-package co.casterlabs.dbohttp.daemon;
+package co.casterlabs.dbohttp;
 
 public class Launcher {
 

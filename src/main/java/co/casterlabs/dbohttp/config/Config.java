@@ -1,4 +1,6 @@
-package co.casterlabs.dbohttp.daemon.config;
+package co.casterlabs.dbohttp.config;
+
+import org.jetbrains.annotations.Nullable;
 
 import co.casterlabs.rakurai.json.annotating.JsonClass;
 import lombok.ToString;
@@ -8,5 +10,7 @@ import lombok.ToString;
 public class Config {
     public AlertConfig alerts = new AlertConfig();
     public DatabaseConfig database = new DatabaseConfig();
+
+    public @Nullable String[] heartbeatUrls = {};
 
 }
