@@ -133,12 +133,6 @@
 		</dependency>
 
 		<dependency>
-			<groupId>info.picocli</groupId>
-			<artifactId>picocli</artifactId>
-			<version>4.3.0</version>
-			<scope>compile</scope>
-		</dependency>
-		<dependency>
 			<groupId>com.github.e3ndr</groupId>
 			<artifactId>FastLoggingFramework</artifactId>
 			<version>1.12.1</version>
