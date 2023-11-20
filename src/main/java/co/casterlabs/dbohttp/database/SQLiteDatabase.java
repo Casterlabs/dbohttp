@@ -10,6 +10,8 @@ import java.sql.SQLException;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -23,10 +25,17 @@ import lombok.NonNull;
 
 public class SQLiteDatabase implements Database {
     private Connection conn;
+    private Semaphore concurrentAccessLock;
+
+    private DatabaseConfig config;
 
     public SQLiteDatabase(DatabaseConfig config) throws SQLException {
-        this.conn = DriverManager.getConnection("jdbc:sqlite:" + config.file);
+        this.config = config;
+
+        this.conn = DriverManager.getConnection("jdbc:sqlite:" + this.config.file);
         this.conn.setAutoCommit(true);
+
+        this.concurrentAccessLock = new Semaphore(this.config.concurrentAccessLimit);
     }
 
     private PreparedStatement prepare(@NonNull MarshallingContext context, @NonNull String query, @Nullable JsonArray parameters) throws StatementPreparationException, QueryMarshallingException {
@@ -56,14 +65,18 @@ public class SQLiteDatabase implements Database {
     }
 
     @Override
-    public @NonNull JsonElement first(@NonNull MarshallingContext context, @Nullable String columnName, @NonNull String query, @Nullable JsonArray parameters) throws StatementPreparationException, QueryException, QueryMarshallingException {
+    public @NonNull JsonElement first(@NonNull MarshallingContext context, @Nullable String columnName, @NonNull String query, @Nullable JsonArray parameters) throws StatementPreparationException, QueryException, QueryMarshallingException, InterruptedException {
+        if (!this.concurrentAccessLock.tryAcquire(this.config.accessTimeoutSeconds, TimeUnit.SECONDS)) {
+            throw new QueryException("Timed out whilst waiting for an available permit. Try again later.");
+        }
+
         try (PreparedStatement statement = this.prepare(context, query, parameters)) {
             ResultSet resultSet;
 
             try {
                 resultSet = statement.executeQuery();
             } catch (SQLException e) {
-                throw new QueryException(e);
+                throw new QueryException("An error occurred whilst executing query.", e);
             }
 
             try {
@@ -80,19 +93,23 @@ public class SQLiteDatabase implements Database {
                 throw new QueryMarshallingException(t);
             }
         } catch (SQLException e) {
-            throw new QueryException(e);
+            throw new QueryException("An internal error occurred whilst cleaning up.", e);
+        } finally {
+            this.concurrentAccessLock.release();
         }
     }
 
     @Override
-    public @NonNull List<JsonObject> all(@NonNull MarshallingContext context, @NonNull String query, @Nullable JsonArray parameters) throws StatementPreparationException, QueryException, QueryMarshallingException {
+    public @NonNull List<JsonObject> all(@NonNull MarshallingContext context, @NonNull String query, @Nullable JsonArray parameters) throws StatementPreparationException, QueryException, QueryMarshallingException, InterruptedException {
+        this.concurrentAccessLock.acquire();
+
         try (PreparedStatement statement = this.prepare(context, query, parameters)) {
             ResultSet resultSet;
 
             try {
                 resultSet = statement.executeQuery();
             } catch (SQLException e) {
-                throw new QueryException(e);
+                throw new QueryException("An error occurred whilst executing query.", e);
             }
 
             try {
@@ -124,27 +141,44 @@ public class SQLiteDatabase implements Database {
                 throw new QueryMarshallingException(t);
             }
         } catch (SQLException e) {
-            throw new QueryException(e);
+            throw new QueryException("An internal error occurred whilst cleaning up.", e);
+        } finally {
+            this.concurrentAccessLock.release();
         }
     }
 
     @Override
-    public void run(@NonNull MarshallingContext context, @NonNull String query, @Nullable JsonArray parameters) throws StatementPreparationException, QueryException, QueryMarshallingException {
+    public void run(@NonNull MarshallingContext context, @NonNull String query, @Nullable JsonArray parameters) throws StatementPreparationException, QueryException, QueryMarshallingException, InterruptedException {
+        this.concurrentAccessLock.acquire();
+
         try (PreparedStatement statement = this.prepare(context, query, parameters)) {
-            statement.execute();
+            try {
+                statement.execute();
+            } catch (SQLException e) {
+                throw new QueryException("An error occurred whilst executing query.", e);
+            }
         } catch (SQLException e) {
-            throw new QueryException(e);
+            throw new QueryException("An internal error occurred whilst cleaning up.", e);
+        } finally {
+            this.concurrentAccessLock.release();
         }
     }
 
     @Override
     public void close() throws IOException {
-        if (this.conn != null) {
+        if (this.conn == null) return;
+
+        try {
             try {
+                this.concurrentAccessLock.acquire(this.config.concurrentAccessLimit);
                 this.conn.close();
-            } catch (SQLException e) {
-                throw new IOException(e);
+            } catch (InterruptedException e) {
+                Thread.interrupted(); // Clear.
+                this.conn.close(); // We want to close the database regardless.
+                Thread.currentThread().interrupt();
             }
+        } catch (SQLException e) {
+            throw new IOException(e);
         }
     }
 

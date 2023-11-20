@@ -13,10 +13,10 @@ import lombok.NonNull;
 
 public interface Database extends Closeable {
 
-    public @NonNull JsonElement first(@NonNull MarshallingContext context, @Nullable String columnName, @NonNull String query, @Nullable JsonArray parameters) throws StatementPreparationException, QueryException, QueryMarshallingException;
+    public @NonNull JsonElement first(@NonNull MarshallingContext context, @Nullable String columnName, @NonNull String query, @Nullable JsonArray parameters) throws StatementPreparationException, QueryException, QueryMarshallingException, InterruptedException;
 
-    public @NonNull List<JsonObject> all(@NonNull MarshallingContext context, @NonNull String query, @Nullable JsonArray parameters) throws StatementPreparationException, QueryException, QueryMarshallingException;
+    public @NonNull List<JsonObject> all(@NonNull MarshallingContext context, @NonNull String query, @Nullable JsonArray parameters) throws StatementPreparationException, QueryException, QueryMarshallingException, InterruptedException;
 
-    public void run(@NonNull MarshallingContext context, @NonNull String query, @Nullable JsonArray parameters) throws StatementPreparationException, QueryException, QueryMarshallingException;
+    public void run(@NonNull MarshallingContext context, @NonNull String query, @Nullable JsonArray parameters) throws StatementPreparationException, QueryException, QueryMarshallingException, InterruptedException;
 
 }
