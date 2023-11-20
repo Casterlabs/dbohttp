@@ -1,5 +1,7 @@
 package co.casterlabs.dbohttp.config;
 
+import java.util.concurrent.TimeUnit;
+
 import org.jetbrains.annotations.Nullable;
 
 import co.casterlabs.rakurai.json.annotating.JsonClass;
@@ -13,6 +15,7 @@ public class Config {
 
     public DatabaseConfig database = new DatabaseConfig();
 
-    public @Nullable String[] heartbeatUrls = {};
+    public @Nullable String heartbeatUrl = null;
+    public long heartbeatIntervalSeconds = TimeUnit.SECONDS.toMillis(15);
 
 }

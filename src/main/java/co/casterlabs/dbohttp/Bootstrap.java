@@ -65,14 +65,26 @@ public class Bootstrap {
 
         DBOHTTP.config = config;
 
+        // Reconfigure heartbeats.
+        if (DBOHTTP.heartbeat != null) {
+            DBOHTTP.heartbeat.close();
+            DBOHTTP.heartbeat = null;
+        }
+
+        if (DBOHTTP.config.heartbeatUrl != null && DBOHTTP.config.heartbeatIntervalSeconds > 0) {
+            DBOHTTP.heartbeat = new Heartbeat();
+            DBOHTTP.heartbeat.start();
+        }
+
         // Logging
         FastLoggingFramework.setColorEnabled(false);
         FastLoggingFramework.setDefaultLevel(config.debug ? LogLevel.DEBUG : LogLevel.INFO);
 
-        Database old = DBOHTTP.database;
+        // Reconfigure the database.
+        Database oldDb = DBOHTTP.database;
         DBOHTTP.database = config.database.create();
-        if (old != null) {
-            old.close();
+        if (oldDb != null) {
+            oldDb.close();
         }
     }
 
