@@ -8,7 +8,6 @@ import lombok.ToString;
 @ToString
 @JsonClass(exposeAll = true)
 public class Config {
-    public AlertConfig alerts = new AlertConfig();
     public DatabaseConfig database = new DatabaseConfig();
 
     public @Nullable String[] heartbeatUrls = {};
