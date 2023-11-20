@@ -119,7 +119,7 @@ public class SQLiteDatabase implements Database {
             // Get the column names.
             ResultSetMetaData metadata = resultSet.getMetaData();
             if (metadata.getColumnCount() == 0) {
-                double took = (System.nanoTime() - start) / 1e-6;
+                double took = (System.nanoTime() - start) / 1000000d;
 
                 // We want to write to the samples array, over writing previous values as we go.
                 // This is effectively a circular array.
@@ -149,7 +149,7 @@ public class SQLiteDatabase implements Database {
                 results.add(row);
             }
 
-            double took = (System.nanoTime() - start) / 1e-6;
+            double took = (System.nanoTime() - start) / 1000000d;
 
             // We want to write to the samples array, over writing previous values as we go.
             // This is effectively a circular array.
