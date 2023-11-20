@@ -23,6 +23,7 @@ import xyz.e3ndr.fastloggingframework.logging.LogLevel;
 
 public class SQLiteDatabase implements Database {
     private final Semaphore concurrentAccessLock = new Semaphore(1);
+    private volatile boolean allowFurtherAccess = true;
     private Connection conn;
 
     public SQLiteDatabase(DatabaseConfig config) throws SQLException {
@@ -65,6 +66,10 @@ public class SQLiteDatabase implements Database {
 
     @Override
     public @NonNull List<JsonObject> query(@NonNull MarshallingContext context, @NonNull String query, @NonNull JsonArray parameters) throws UnsupportedOperationException, IllegalArgumentException, QueryException {
+        if (!this.allowFurtherAccess) {
+            throw new QueryException(QueryErrorCode.INTERNAL_ERROR, "Database is closing.");
+        }
+
         try {
             this.concurrentAccessLock.acquire();
         } catch (InterruptedException ignored) {
@@ -149,6 +154,7 @@ public class SQLiteDatabase implements Database {
 
         try {
             try {
+                this.allowFurtherAccess = false;
                 this.concurrentAccessLock.acquire(); // Wait for remaining queries to finish.
                 this.conn.close();
             } catch (InterruptedException e) {
@@ -158,6 +164,8 @@ public class SQLiteDatabase implements Database {
             }
         } catch (SQLException e) {
             throw new IOException(e);
+        } finally {
+            this.conn = null;
         }
     }
 
