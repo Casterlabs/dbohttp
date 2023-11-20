@@ -2,12 +2,12 @@ package co.casterlabs.dbohttp.daemon;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
 
 import co.casterlabs.dbohttp.DBOHTTP;
 import co.casterlabs.dbohttp.database.QueryException;
+import co.casterlabs.dbohttp.database.QueryResult;
 import co.casterlabs.rakurai.json.Rson;
 import co.casterlabs.rakurai.json.element.JsonObject;
 import co.casterlabs.rhs.protocol.HttpStatus;
@@ -51,19 +51,17 @@ public class Daemon implements Closeable, HttpListener {
         }
 
         try {
-            long start = System.currentTimeMillis();
-            List<JsonObject> results = DBOHTTP.database.query(request, request.sql, request.params);
-            long end = System.currentTimeMillis();
+            QueryResult result = DBOHTTP.database.query(request, request.sql, request.params);
 
             return HttpResponse.newFixedLengthResponse(
                 StandardHttpStatus.OK,
                 new JsonObject()
-                    .put("results", Rson.DEFAULT.toJson(results))
+                    .put("results", Rson.DEFAULT.toJson(result.rows()))
                     .put(
                         "meta",
                         new JsonObject()
-                            .put("took", end - start)
-                            .put("rowsReturned", results.size())
+                            .put("took", result.took())
+                            .put("rowsReturned", result.rows().size())
                     )
                     .putNull("error")
                     .toString(true)

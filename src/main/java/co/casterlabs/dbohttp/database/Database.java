@@ -10,7 +10,7 @@ import lombok.NonNull;
 
 public interface Database extends Closeable {
 
-    public @NonNull List<JsonObject> query(@NonNull MarshallingContext context, @NonNull String query, @NonNull JsonArray parameters) throws UnsupportedOperationException, IllegalArgumentException, QueryException;
+    public @NonNull QueryResult query(@NonNull MarshallingContext context, @NonNull String query, @NonNull JsonArray parameters) throws UnsupportedOperationException, IllegalArgumentException, QueryException;
 
     public @NonNull JsonObject generateReport();
 

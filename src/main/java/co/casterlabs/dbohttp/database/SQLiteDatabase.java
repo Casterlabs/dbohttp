@@ -29,7 +29,7 @@ public class SQLiteDatabase implements Database {
     private Connection conn;
 
     private long queriesRan = 0;
-    private long[] queryTimeSamples = new long[100];
+    private double[] queryTimeSamples = new double[100];
     {
         Arrays.fill(this.queryTimeSamples, -1);
     }
@@ -73,12 +73,12 @@ public class SQLiteDatabase implements Database {
     }
 
     @Override
-    public @NonNull List<JsonObject> query(@NonNull MarshallingContext context, @NonNull String query, @NonNull JsonArray parameters) throws UnsupportedOperationException, IllegalArgumentException, QueryException {
+    public @NonNull QueryResult query(@NonNull MarshallingContext context, @NonNull String query, @NonNull JsonArray parameters) throws UnsupportedOperationException, IllegalArgumentException, QueryException {
         if (!this.allowFurtherAccess) {
             throw new QueryException(QueryErrorCode.INTERNAL_ERROR, "Database is closing.");
         }
 
-        long start = System.currentTimeMillis();
+        long start = System.nanoTime();
 
         try {
             this.concurrentAccessLock.acquire();
@@ -103,14 +103,33 @@ public class SQLiteDatabase implements Database {
             }
 
             if (resultSet == null) {
+                double took = (System.nanoTime() - start) / 1e-6;
+
+                // We want to write to the samples array, over writing previous values as we go.
+                // This is effectively a circular array.
+                this.queryTimeSamples[(int) (this.queriesRan % this.queryTimeSamples.length)] = took;
+                this.queriesRan++;
+
+                FastLogger.logStatic(LogLevel.DEBUG, "Ran `%s` in %fms.", query, took);
+
                 this.conn.commit();
-                return Collections.emptyList();
+                return new QueryResult(Collections.emptyList(), took);
             }
 
             // Get the column names.
             ResultSetMetaData metadata = resultSet.getMetaData();
             if (metadata.getColumnCount() == 0) {
-                return Collections.emptyList();
+                double took = (System.nanoTime() - start) / 1e-6;
+
+                // We want to write to the samples array, over writing previous values as we go.
+                // This is effectively a circular array.
+                this.queryTimeSamples[(int) (this.queriesRan % this.queryTimeSamples.length)] = took;
+                this.queriesRan++;
+
+                FastLogger.logStatic(LogLevel.DEBUG, "Ran `%s` in %fms.", query, took);
+
+                this.conn.commit();
+                return new QueryResult(Collections.emptyList(), took);
             }
 
             String[] columns = new String[metadata.getColumnCount()];
@@ -130,9 +149,17 @@ public class SQLiteDatabase implements Database {
                 results.add(row);
             }
 
-            this.conn.commit();
+            double took = (System.nanoTime() - start) / 1e-6;
 
-            return results;
+            // We want to write to the samples array, over writing previous values as we go.
+            // This is effectively a circular array.
+            this.queryTimeSamples[(int) (this.queriesRan % this.queryTimeSamples.length)] = took;
+            this.queriesRan++;
+
+            FastLogger.logStatic(LogLevel.DEBUG, "Ran `%s` in %fms.", query, took);
+
+            this.conn.commit();
+            return new QueryResult(results, took);
         } catch (Throwable t) {
             if (statement != null) {
                 try {
@@ -154,14 +181,6 @@ public class SQLiteDatabase implements Database {
             FastLogger.logStatic(LogLevel.SEVERE, "An internal error occurred.\n%s", t);
             throw new QueryException(QueryErrorCode.INTERNAL_ERROR, "Internal error.");
         } finally {
-            long end = System.currentTimeMillis();
-
-            this.queriesRan++;
-
-            // We want to write to the samples array, over writing previous values as we go.
-            // This is effectively a circular array.
-            this.queryTimeSamples[(int) (this.queriesRan % this.queryTimeSamples.length)] = end - start;
-
             this.concurrentAccessLock.release();
         }
     }
@@ -173,7 +192,7 @@ public class SQLiteDatabase implements Database {
         double averageQueryTime = -1;
         int averageQueryTime_sampleCount = 0;
 
-        for (long sample : this.queryTimeSamples) {
+        for (double sample : this.queryTimeSamples) {
             if (sample == -1) continue;
             averageQueryTime += sample;
             averageQueryTime_sampleCount++;
@@ -197,6 +216,7 @@ public class SQLiteDatabase implements Database {
             "SELECT name FROM sqlite_schema WHERE type IN ('table','view') AND name NOT LIKE 'sqlite_%' ORDER BY 1;",
             JsonArray.EMPTY_ARRAY
         )
+            .rows()
             .parallelStream()
             .map((r) -> r.getString("name"))
             .toList();
