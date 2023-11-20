@@ -106,7 +106,7 @@ public class SQLiteDatabase implements Database {
             List<JsonObject> rows = Collections.emptyList();
 
             // We want to skip the row marshalling process if we can...
-            if (metadata != null && metadata.getColumnCount() == 0) {
+            if (metadata != null && metadata.getColumnCount() > 0) {
                 rows = new LinkedList<>(); // Allocate a list...
 
                 // Get the column names.
