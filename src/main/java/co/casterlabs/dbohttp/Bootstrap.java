@@ -4,6 +4,9 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.algorithms.Algorithm;
+
 import co.casterlabs.dbohttp.config.Config;
 import co.casterlabs.dbohttp.daemon.Daemon;
 import co.casterlabs.dbohttp.database.Database;
@@ -65,6 +68,18 @@ public class Bootstrap {
         }
 
         DBOHTTP.config = config;
+
+        // Reconfigure the JWT verifiers.
+        Algorithm signingAlg = Algorithm.HMAC256(config.jwtSecret);
+
+        DBOHTTP.infoVerifier = JWT.require(signingAlg)
+            .withClaim("info", true)
+            .withSubject("dbohttp")
+            .build();
+        DBOHTTP.queryVerifier = JWT.require(signingAlg)
+            .withClaim("query", true)
+            .withSubject("dbohttp")
+            .build();
 
         // Reconfigure heartbeats.
         if (DBOHTTP.heartbeat != null) {

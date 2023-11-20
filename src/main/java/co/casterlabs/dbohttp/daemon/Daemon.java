@@ -5,6 +5,8 @@ import java.io.IOException;
 
 import org.jetbrains.annotations.Nullable;
 
+import com.auth0.jwt.exceptions.JWTVerificationException;
+
 import co.casterlabs.dbohttp.DBOHTTP;
 import co.casterlabs.dbohttp.database.QueryException;
 import co.casterlabs.dbohttp.database.QueryResult;
@@ -121,14 +123,28 @@ public class Daemon implements Closeable, HttpListener {
 
     @Override
     public @Nullable HttpResponse serveHttpSession(HttpSession session) {
-        // TODO Verify Authorization header.
-        switch (session.getMethod()) {
-            case GET:
-                return this.handleInfo(session);
-            case POST:
-                return this.handleQuery(session);
-            default:
-                return NOT_IMPLEMENTED;
+        try {
+            String token = session.getHeader("Authorization");
+            if (token == null) throw new IllegalAccessException();
+
+            if (!token.startsWith("Bearer ")) throw new IllegalAccessException();
+            token = token.substring("Bearer ".length());
+
+            // TODO Verify Authorization header.
+            switch (session.getMethod()) {
+                case GET:
+                    DBOHTTP.infoVerifier.verify(token); // Check it.
+                    return this.handleInfo(session);
+
+                case POST:
+                    DBOHTTP.queryVerifier.verify(token); // Check it.
+                    return this.handleQuery(session);
+
+                default:
+                    return NOT_IMPLEMENTED;
+            }
+        } catch (JWTVerificationException | IllegalAccessException e) {
+            return HttpResponse.newFixedLengthResponse(StandardHttpStatus.UNAUTHORIZED);
         }
     }
 
