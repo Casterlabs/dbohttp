@@ -94,12 +94,40 @@ public class Daemon implements Closeable, HttpListener {
         }
     }
 
+    private HttpResponse handleInfo(HttpSession session) {
+        try {
+            return HttpResponse.newFixedLengthResponse(
+                StandardHttpStatus.OK,
+                new JsonObject()
+                    .put(
+                        "info",
+                        new JsonObject()
+                            .put("driver", DBOHTTP.config.database.driver.name())
+                            .put("report", DBOHTTP.database.generateReport())
+                    )
+                    .putNull("error")
+                    .toString(true)
+            )
+                .setMimeType("application/json; charset=utf-8")
+                .putHeader("X-Modified", "no");
+        } catch (Throwable t) {
+            return errorResponse(
+                StandardHttpStatus.INTERNAL_ERROR,
+                "INTERNAL_ERROR",
+                "An internal error occurred."
+            )
+                .putHeader("X-Modified", "no");
+        }
+    }
+
     @Override
     public @Nullable HttpResponse serveHttpSession(HttpSession session) {
+        // TODO Verify Authorization header.
         switch (session.getMethod()) {
+            case GET:
+                return this.handleInfo(session);
             case POST:
                 return this.handleQuery(session);
-
             default:
                 return NOT_IMPLEMENTED;
         }

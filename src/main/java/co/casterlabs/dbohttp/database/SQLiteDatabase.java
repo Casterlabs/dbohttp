@@ -7,6 +7,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -25,6 +26,12 @@ public class SQLiteDatabase implements Database {
     private final Semaphore concurrentAccessLock = new Semaphore(1);
     private volatile boolean allowFurtherAccess = true;
     private Connection conn;
+
+    private long queriesRan = 0;
+    private long[] queryTimeSamples = new long[100];
+    {
+        Arrays.fill(this.queryTimeSamples, -1);
+    }
 
     public SQLiteDatabase(DatabaseConfig config) throws SQLException {
         this.conn = DriverManager.getConnection("jdbc:sqlite:" + config.file);
@@ -69,6 +76,8 @@ public class SQLiteDatabase implements Database {
         if (!this.allowFurtherAccess) {
             throw new QueryException(QueryErrorCode.INTERNAL_ERROR, "Database is closing.");
         }
+
+        long start = System.currentTimeMillis();
 
         try {
             this.concurrentAccessLock.acquire();
@@ -144,6 +153,14 @@ public class SQLiteDatabase implements Database {
             FastLogger.logStatic(LogLevel.SEVERE, "An internal error occurred.\n%s", t);
             throw new QueryException(QueryErrorCode.INTERNAL_ERROR, "Internal error.");
         } finally {
+            long end = System.currentTimeMillis();
+
+            this.queriesRan++;
+
+            // We want to write to the samples array, over writing previous values as we go.
+            // This is effectively a circular array.
+            this.queryTimeSamples[(int) (this.queriesRan % this.queryTimeSamples.length)] = end - start;
+
             this.concurrentAccessLock.release();
         }
     }
@@ -167,6 +184,29 @@ public class SQLiteDatabase implements Database {
         } finally {
             this.conn = null;
         }
+    }
+
+    @Override
+    public JsonObject generateReport() {
+        // Calculate the average query time using the samples. We're not worried about
+        // concurrent access or anything. Approximate values are acceptable.
+        double averageQueryTime = -1;
+        int averageQueryTime_sampleCount = 0;
+
+        for (long sample : this.queryTimeSamples) {
+            if (sample == -1) continue;
+            averageQueryTime += sample;
+            averageQueryTime_sampleCount++;
+        }
+
+        if (averageQueryTime_sampleCount > 0) {
+            averageQueryTime /= averageQueryTime_sampleCount; // Don't forget to divide!
+        } // Otherwise, leave it as -1.
+
+        return new JsonObject()
+            .put("queued", this.concurrentAccessLock.getQueueLength())
+            .put("queriesRan", this.queriesRan)
+            .put("averageQueryTime", averageQueryTime);
     }
 
     private static void checkForSpecificError(SQLException e) throws QueryException {
