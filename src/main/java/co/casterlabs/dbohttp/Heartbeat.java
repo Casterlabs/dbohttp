@@ -24,18 +24,20 @@ public class Heartbeat extends Thread implements Closeable {
     public void run() {
         while (this.shouldRun) {
             try {
-                Misc.httpClient.send(
+                String response = Misc.httpClient.send(
                     HttpRequest.newBuilder()
                         .uri(URI.create(DBOHTTP.config.heartbeatUrl))
                         .header("Content-Type", "text/plain")
-                        .POST(
-                            HttpRequest.BodyPublishers.ofString(
-                                String.valueOf(System.currentTimeMillis())
-                            )
-                        )
+                        .GET()
+//                        .POST(
+//                            HttpRequest.BodyPublishers.ofString(
+//                                String.valueOf(System.currentTimeMillis())
+//                            )
+//                        )
                         .build(),
-                    HttpResponse.BodyHandlers.discarding()
-                );
+                    HttpResponse.BodyHandlers.ofString()
+                ).body();
+                FastLogger.logStatic(LogLevel.DEBUG, "Sent heartbeat.\n%s", response);
             } catch (IOException | InterruptedException e) {
                 FastLogger.logStatic(LogLevel.WARNING, "Unable to send heartbeat:\n%s", e);
             }
