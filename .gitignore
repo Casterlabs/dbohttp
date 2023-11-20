@@ -13,3 +13,4 @@ target/
 
 # Misc
 config.json
+database.sqlite
