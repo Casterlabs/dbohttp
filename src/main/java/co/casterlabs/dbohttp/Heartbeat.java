@@ -4,6 +4,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.concurrent.TimeUnit;
 
 import co.casterlabs.dbohttp.util.Misc;
@@ -17,7 +18,6 @@ public class Heartbeat extends Thread implements Closeable {
         this.setName("Heartbeat Thread");
         this.setPriority(Thread.MIN_PRIORITY);
         this.setDaemon(true);
-        this.start();
     }
 
     @Override
@@ -34,7 +34,7 @@ public class Heartbeat extends Thread implements Closeable {
                             )
                         )
                         .build(),
-                    null
+                    HttpResponse.BodyHandlers.discarding()
                 );
             } catch (IOException | InterruptedException e) {
                 FastLogger.logStatic(LogLevel.WARNING, "Unable to send heartbeat:\n%s", e);

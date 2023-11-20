@@ -11,7 +11,6 @@ import lombok.ToString;
 @ToString
 @JsonClass(exposeAll = true)
 public class DatabaseConfig {
-    public int concurrentAccessLimit = 2000;
     public long accessTimeoutSeconds = 30;
 
     public DatabaseDriver driver = DatabaseDriver.SQLITE;

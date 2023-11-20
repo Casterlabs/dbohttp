@@ -12,6 +12,6 @@ import lombok.NonNull;
 
 public interface Database extends Closeable {
 
-    public @NonNull List<JsonObject> query(@NonNull MarshallingContext context, @NonNull String query, @Nullable JsonArray parameters) throws StatementPreparationException, QueryException, QueryMarshallingException, InterruptedException;
+    public @NonNull List<JsonObject> query(@NonNull MarshallingContext context, @NonNull String query, @Nullable JsonArray parameters) throws UnsupportedOperationException, IllegalArgumentException, QueryException;
 
 }

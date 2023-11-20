@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 
 import co.casterlabs.dbohttp.config.Config;
+import co.casterlabs.dbohttp.daemon.Daemon;
 import co.casterlabs.dbohttp.database.Database;
 import co.casterlabs.dbohttp.util.FileWatcher;
 import co.casterlabs.rakurai.json.Rson;
@@ -79,6 +80,7 @@ public class Bootstrap {
         // Logging
         FastLoggingFramework.setColorEnabled(false);
         FastLoggingFramework.setDefaultLevel(config.debug ? LogLevel.DEBUG : LogLevel.INFO);
+        DBOHTTP.daemon.server.getLogger().setCurrentLevel(FastLoggingFramework.getDefaultLevel());
 
         // Reconfigure the database.
         Database oldDb = DBOHTTP.database;

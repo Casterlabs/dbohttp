@@ -3,7 +3,6 @@ package co.casterlabs.dbohttp.util;
 import java.sql.Blob;
 import java.sql.SQLException;
 
-import co.casterlabs.dbohttp.database.QueryMarshallingException;
 import co.casterlabs.rakurai.json.Rson;
 import co.casterlabs.rakurai.json.annotating.JsonClass;
 import co.casterlabs.rakurai.json.element.JsonArray;
@@ -13,7 +12,7 @@ import co.casterlabs.rakurai.json.element.JsonElement;
 public class MarshallingContext {
     public boolean byteArraysAreSigned = true;
 
-    public Object jsonToJava(JsonElement e) throws QueryMarshallingException {
+    public Object jsonToJava(JsonElement e) {
         if (e.isJsonArray()) {
             try {
                 // We support BLOB via a JsonArray
@@ -24,18 +23,18 @@ public class MarshallingContext {
                     Number number = jsonArray.getNumber(idx);
 
                     if (number.doubleValue() != number.longValue()) {
-                        throw new QueryMarshallingException(new IllegalArgumentException("Every entry in a byte array must be an integer."));
+                        throw new IllegalArgumentException("Every entry in a byte array must be an integer.");
                     }
 
                     long value = number.longValue();
 
                     if (this.byteArraysAreSigned) {
                         if (value < -128 || value > 127) {
-                            throw new QueryMarshallingException(new IllegalArgumentException("Signed values must be -128->127 inclusive."));
+                            throw new IllegalArgumentException("Signed values must be -128->127 inclusive.");
                         }
                     } else {
                         if (value < 0 || value > 255) {
-                            throw new QueryMarshallingException(new IllegalArgumentException("Unsigned values must be 0->255 inclusive."));
+                            throw new IllegalArgumentException("Unsigned values must be 0->255 inclusive.");
                         }
                     }
 
@@ -44,7 +43,7 @@ public class MarshallingContext {
 
                 return bytes;
             } catch (UnsupportedOperationException ignored) {
-                throw new QueryMarshallingException(new UnsupportedOperationException("Cannot map non-byte arrays to SQL."));
+                throw new UnsupportedOperationException("Cannot map non-byte arrays to SQL.");
             }
         }
 
@@ -61,7 +60,7 @@ public class MarshallingContext {
         }
 
         if (e.isJsonObject()) {
-            throw new QueryMarshallingException(new UnsupportedOperationException("Cannot map JsonObject to SQL."));
+            throw new UnsupportedOperationException("Cannot map JsonObject to SQL.");
         }
 
         if (e.isJsonString()) {
@@ -71,17 +70,13 @@ public class MarshallingContext {
         throw new UnsupportedOperationException("Unknown type: " + JsonElement.class);
     }
 
-    public JsonElement javaToJson(Object obj) throws QueryMarshallingException {
+    public JsonElement javaToJson(Object obj) throws SQLException {
         if (obj instanceof Blob) {
             Blob blob = (Blob) obj;
-            try {
-                byte[] bytes = blob.getBytes(0, (int) blob.length());
-                blob.free();
+            byte[] bytes = blob.getBytes(0, (int) blob.length());
+            blob.free();
 
-                return bytesToArray(bytes);
-            } catch (SQLException e) {
-                throw new QueryMarshallingException(e);
-            }
+            return bytesToArray(bytes);
         }
 
         if (obj instanceof byte[]) {

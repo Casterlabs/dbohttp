@@ -1,6 +1,7 @@
 package co.casterlabs.dbohttp;
 
 import co.casterlabs.dbohttp.config.Config;
+import co.casterlabs.dbohttp.daemon.Daemon;
 import co.casterlabs.dbohttp.database.Database;
 
 public class DBOHTTP {
