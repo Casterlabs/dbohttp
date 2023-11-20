@@ -102,51 +102,29 @@ public class SQLiteDatabase implements Database {
                 throw new QueryException(QueryErrorCode.FAILED_TO_EXECUTE, "An error occurred whilst executing query.");
             }
 
-            if (resultSet == null) {
-                double took = (System.nanoTime() - start) / 1e-6;
+            ResultSetMetaData metadata = resultSet == null ? null : resultSet.getMetaData();
+            List<JsonObject> rows = Collections.emptyList();
 
-                // We want to write to the samples array, over writing previous values as we go.
-                // This is effectively a circular array.
-                this.queryTimeSamples[(int) (this.queriesRan % this.queryTimeSamples.length)] = took;
-                this.queriesRan++;
+            // We want to skip the row marshalling process if we can...
+            if (metadata != null && metadata.getColumnCount() == 0) {
+                rows = new LinkedList<>(); // Allocate a list...
 
-                FastLogger.logStatic(LogLevel.DEBUG, "Ran `%s` in %fms.", query, took);
-
-                this.conn.commit();
-                return new QueryResult(Collections.emptyList(), took);
-            }
-
-            // Get the column names.
-            ResultSetMetaData metadata = resultSet.getMetaData();
-            if (metadata.getColumnCount() == 0) {
-                double took = (System.nanoTime() - start) / 1000000d;
-
-                // We want to write to the samples array, over writing previous values as we go.
-                // This is effectively a circular array.
-                this.queryTimeSamples[(int) (this.queriesRan % this.queryTimeSamples.length)] = took;
-                this.queriesRan++;
-
-                FastLogger.logStatic(LogLevel.DEBUG, "Ran `%s` in %fms.", query, took);
-
-                this.conn.commit();
-                return new QueryResult(Collections.emptyList(), took);
-            }
-
-            String[] columns = new String[metadata.getColumnCount()];
-            for (int i = 0; i < columns.length; i++) {
-                columns[i] = metadata.getColumnLabel(i + 1);
-            }
-
-            List<JsonObject> results = new LinkedList<>();
-            while (resultSet.next()) {
-                JsonObject row = new JsonObject();
-                for (String columnName : columns) {
-                    row.put(
-                        columnName,
-                        context.javaToJson(resultSet.getObject(columnName))
-                    );
+                // Get the column names.
+                String[] columns = new String[metadata.getColumnCount()];
+                for (int i = 0; i < columns.length; i++) {
+                    columns[i] = metadata.getColumnLabel(i + 1);
                 }
-                results.add(row);
+
+                while (resultSet.next()) {
+                    JsonObject row = new JsonObject();
+                    for (String columnName : columns) {
+                        row.put(
+                            columnName,
+                            context.javaToJson(resultSet.getObject(columnName))
+                        );
+                    }
+                    rows.add(row);
+                }
             }
 
             double took = (System.nanoTime() - start) / 1000000d;
@@ -156,10 +134,10 @@ public class SQLiteDatabase implements Database {
             this.queryTimeSamples[(int) (this.queriesRan % this.queryTimeSamples.length)] = took;
             this.queriesRan++;
 
-            FastLogger.logStatic(LogLevel.DEBUG, "Ran `%s` in %fms.", query, took);
+            FastLogger.logStatic(LogLevel.DEBUG, "Ran `%s` in %fms, rows returned: %d.", query, took, rows.size());
 
             this.conn.commit();
-            return new QueryResult(results, took);
+            return new QueryResult(rows, took);
         } catch (Throwable t) {
             if (statement != null) {
                 try {
