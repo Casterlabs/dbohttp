@@ -12,9 +12,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Semaphore;
 
-import org.jetbrains.annotations.Nullable;
-
 import co.casterlabs.dbohttp.config.DatabaseConfig;
+import co.casterlabs.dbohttp.database.QueryException.QueryErrorCode;
 import co.casterlabs.dbohttp.util.MarshallingContext;
 import co.casterlabs.rakurai.json.element.JsonArray;
 import co.casterlabs.rakurai.json.element.JsonObject;
@@ -31,35 +30,45 @@ public class SQLiteDatabase implements Database {
         this.conn.setAutoCommit(false);
     }
 
-    private PreparedStatement prepare(@NonNull MarshallingContext context, @NonNull String query, @Nullable JsonArray parameters) throws UnsupportedOperationException, IllegalArgumentException, QueryException {
+    private PreparedStatement prepare(@NonNull MarshallingContext context, @NonNull String query, @NonNull JsonArray parameters) throws UnsupportedOperationException, IllegalArgumentException, QueryException {
         try {
             PreparedStatement prepared = this.conn.prepareStatement(query);
-            if (parameters != null) {
-                for (int idx = 0; idx < parameters.size(); idx++) {
-                    Object obj = context.jsonToJava(parameters.get(idx));
 
-                    if (obj instanceof byte[]) {
-                        prepared.setBytes(idx + 1, (byte[]) obj);
-                        continue;
-                    }
+            if (prepared.getParameterMetaData().getParameterCount() != parameters.size()) {
+                throw new QueryException(
+                    QueryErrorCode.PREPARATION_ERROR,
+                    String.format(
+                        "An incorrect amount of parameters were specified. Expected %d got %d.",
+                        prepared.getParameterMetaData().getParameterCount(), parameters.size()
+                    )
+                );
+            }
 
-                    prepared.setObject(idx + 1, obj);
+            for (int idx = 0; idx < parameters.size(); idx++) {
+                Object obj = context.jsonToJava(parameters.get(idx));
+
+                if (obj instanceof byte[]) {
+                    prepared.setBytes(idx + 1, (byte[]) obj);
+                    continue;
                 }
+
+                prepared.setObject(idx + 1, obj);
             }
 
             return prepared;
         } catch (SQLException e) {
+            checkForSpecificError(e);
             FastLogger.logStatic(LogLevel.SEVERE, "Error whilst preparing statement.\n%s", e);
-            throw new QueryException("PREPARATION_ERROR", "Error whilst preparing statement.");
+            throw new QueryException(QueryErrorCode.PREPARATION_ERROR, "Error whilst preparing statement.");
         }
     }
 
     @Override
-    public @NonNull List<JsonObject> query(@NonNull MarshallingContext context, @NonNull String query, @Nullable JsonArray parameters) throws UnsupportedOperationException, IllegalArgumentException, QueryException {
+    public @NonNull List<JsonObject> query(@NonNull MarshallingContext context, @NonNull String query, @NonNull JsonArray parameters) throws UnsupportedOperationException, IllegalArgumentException, QueryException {
         try {
             this.concurrentAccessLock.acquire();
         } catch (InterruptedException ignored) {
-            throw new QueryException("INTERNAL_ERROR", "Internal error.");
+            throw new QueryException(QueryErrorCode.INTERNAL_ERROR, "Internal error.");
         }
 
         PreparedStatement statement = null;
@@ -73,8 +82,9 @@ public class SQLiteDatabase implements Database {
                     resultSet = statement.getResultSet();
                 }
             } catch (SQLException e) {
+                checkForSpecificError(e);
                 FastLogger.logStatic(LogLevel.SEVERE, "An error occurred whilst executing query.\n%s", e);
-                throw new QueryException("FAILED_TO_EXECUTE", "An error occurred whilst executing query.");
+                throw new QueryException(QueryErrorCode.FAILED_TO_EXECUTE, "An error occurred whilst executing query.");
             }
 
             if (resultSet == null) {
@@ -118,8 +128,16 @@ public class SQLiteDatabase implements Database {
                 }
             }
 
+            if (t instanceof QueryException) {
+                throw (QueryException) t;
+            } else if (t instanceof UnsupportedOperationException) {
+                throw (UnsupportedOperationException) t;
+            } else if (t instanceof IllegalArgumentException) {
+                throw (IllegalArgumentException) t;
+            }
+
             FastLogger.logStatic(LogLevel.SEVERE, "An internal error occurred.\n%s", t);
-            throw new QueryException("INTERNAL_ERROR", "Internal error.");
+            throw new QueryException(QueryErrorCode.INTERNAL_ERROR, "Internal error.");
         } finally {
             this.concurrentAccessLock.release();
         }
@@ -140,6 +158,34 @@ public class SQLiteDatabase implements Database {
             }
         } catch (SQLException e) {
             throw new IOException(e);
+        }
+    }
+
+    private static void checkForSpecificError(SQLException e) throws QueryException {
+        switch (e.getErrorCode()) {
+            case 1: {
+                String message = e.getMessage();
+
+                if (message.endsWith(")")) {
+                    message = message.substring(message.indexOf('(') + 1, message.length() - 1);
+                }
+
+                throw new QueryException(QueryErrorCode.SQL_ERROR, message);
+            }
+
+            case 5:
+            case 6:
+            case 11:
+                throw new QueryException(QueryErrorCode.INTERNAL_ERROR, "Database is busy, locked, or corrupt. Is the filesystem broken?");
+
+            case 22:
+                throw new QueryException(QueryErrorCode.INTERNAL_ERROR, "Filesystem does not support Large Files.");
+
+            case 18:
+                throw new QueryException(QueryErrorCode.FAILED_TO_EXECUTE, "Query or parameters (text/blob) are too big for the database to handle.");
+
+            case 20:
+                throw new QueryException(QueryErrorCode.FAILED_TO_EXECUTE, "Type mismatch.");
         }
     }
 

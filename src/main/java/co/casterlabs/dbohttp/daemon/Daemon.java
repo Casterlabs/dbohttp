@@ -80,7 +80,7 @@ public class Daemon implements Closeable, HttpListener {
         } catch (QueryException e) {
             return errorResponse(
                 StandardHttpStatus.INTERNAL_ERROR,
-                e.code,
+                e.code.name(),
                 e.getMessage()
             )
                 .putHeader("X-Modified", "no");
