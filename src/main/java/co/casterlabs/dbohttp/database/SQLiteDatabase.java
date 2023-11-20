@@ -19,6 +19,7 @@ import co.casterlabs.dbohttp.util.MarshallingContext;
 import co.casterlabs.rakurai.json.element.JsonArray;
 import co.casterlabs.rakurai.json.element.JsonObject;
 import lombok.NonNull;
+import lombok.SneakyThrows;
 import xyz.e3ndr.fastloggingframework.logging.FastLogger;
 import xyz.e3ndr.fastloggingframework.logging.LogLevel;
 
@@ -166,27 +167,6 @@ public class SQLiteDatabase implements Database {
     }
 
     @Override
-    public void close() throws IOException {
-        if (this.conn == null) return;
-
-        try {
-            try {
-                this.allowFurtherAccess = false;
-                this.concurrentAccessLock.acquire(); // Wait for remaining queries to finish.
-                this.conn.close();
-            } catch (InterruptedException e) {
-                Thread.interrupted(); // Clear.
-                this.conn.close(); // We want to close the database regardless.
-                Thread.currentThread().interrupt();
-            }
-        } catch (SQLException e) {
-            throw new IOException(e);
-        } finally {
-            this.conn = null;
-        }
-    }
-
-    @Override
     public JsonObject generateReport() {
         // Calculate the average query time using the samples. We're not worried about
         // concurrent access or anything. Approximate values are acceptable.
@@ -207,6 +187,40 @@ public class SQLiteDatabase implements Database {
             .put("queued", this.concurrentAccessLock.getQueueLength())
             .put("queriesRan", this.queriesRan)
             .put("averageQueryTime", averageQueryTime);
+    }
+
+    @SneakyThrows
+    @Override
+    public @NonNull List<String> listTables() {
+        return this.query(
+            new MarshallingContext(),
+            "SELECT name FROM sqlite_schema WHERE type IN ('table','view') AND name NOT LIKE 'sqlite_%' ORDER BY 1;",
+            JsonArray.EMPTY_ARRAY
+        )
+            .parallelStream()
+            .map((r) -> r.getString("name"))
+            .toList();
+    }
+
+    @Override
+    public void close() throws IOException {
+        if (this.conn == null) return;
+
+        try {
+            try {
+                this.allowFurtherAccess = false;
+                this.concurrentAccessLock.acquire(); // Wait for remaining queries to finish.
+                this.conn.close();
+            } catch (InterruptedException e) {
+                Thread.interrupted(); // Clear.
+                this.conn.close(); // We want to close the database regardless.
+                Thread.currentThread().interrupt();
+            }
+        } catch (SQLException e) {
+            throw new IOException(e);
+        } finally {
+            this.conn = null;
+        }
     }
 
     private static void checkForSpecificError(SQLException e) throws QueryException {

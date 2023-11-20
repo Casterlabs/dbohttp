@@ -12,6 +12,8 @@ public interface Database extends Closeable {
 
     public @NonNull List<JsonObject> query(@NonNull MarshallingContext context, @NonNull String query, @NonNull JsonArray parameters) throws UnsupportedOperationException, IllegalArgumentException, QueryException;
 
-    public JsonObject generateReport();
+    public @NonNull JsonObject generateReport();
+
+    public @NonNull List<String> listTables();
 
 }
