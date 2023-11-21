@@ -86,6 +86,7 @@ public class SQLiteDatabase implements Database {
         }
 
         PreparedStatement statement = null;
+        boolean dirty = false;
 
         try {
             statement = this.prepare(context, query, parameters);
@@ -95,6 +96,7 @@ public class SQLiteDatabase implements Database {
                 if (statement.execute()) {
                     resultSet = statement.getResultSet();
                 }
+                dirty = true;
             } catch (SQLException e) {
                 checkForSpecificError(e);
                 FastLogger.logStatic(LogLevel.SEVERE, "An error occurred whilst executing query.\n%s", e);
@@ -150,7 +152,7 @@ public class SQLiteDatabase implements Database {
             this.conn.commit();
             return new QueryResult(rows, took_ms);
         } catch (Throwable t) {
-            if (statement != null) {
+            if (dirty) {
                 try {
                     this.conn.rollback();
                 } catch (SQLException e) {
