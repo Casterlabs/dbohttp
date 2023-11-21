@@ -7,12 +7,11 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.Semaphore;
 
 import co.casterlabs.dbohttp.config.DatabaseConfig;
@@ -30,12 +29,43 @@ public class SQLiteDatabase implements Database {
     private volatile boolean allowFurtherAccess = true;
     private Connection conn;
 
-    private Deque<QueryStat> stats = new LinkedList<>();
+    private Deque<QueryStat> stats = new ConcurrentLinkedDeque<>();
     private long queriesTotal = 0;
 
     public SQLiteDatabase(DatabaseConfig config) throws SQLException {
         this.conn = DriverManager.getConnection("jdbc:sqlite:" + config.file);
         this.conn.setAutoCommit(false);
+
+        Thread cleanupThread = new Thread(() -> {
+            try {
+                while (!this.conn.isClosed()) {
+                    if (this.stats.size() > 100000) {
+                        // Limit it to 100k, I doubt we'll hit 100k requests per second.
+                        // This exists to prevent memory leaking from slow threads.
+                        this.stats.clear();
+                    }
+
+                    QueryStat popped = this.stats.peekFirst();
+
+                    if (popped != null) {
+                        long now = System.nanoTime();
+                        long exp = popped.expiresAt_ns();
+
+                        if (now > exp) {
+                            this.stats.removeFirst();
+                            continue; // Immediately loop back around. We only sleep when we're done.
+                        }
+                    }
+
+                    Thread.sleep(1000);
+                }
+            } catch (SQLException | InterruptedException e) {
+                e.printStackTrace(); // TODO aaaaaaaaaaaaaaaaaaaa
+            }
+        });
+        cleanupThread.setName("Stats cleanup thread.");
+        cleanupThread.setDaemon(true);
+        cleanupThread.start();
     }
 
     private PreparedStatement prepare(@NonNull MarshallingContext context, @NonNull String query, @NonNull JsonArray parameters) throws UnsupportedOperationException, IllegalArgumentException, QueryException {
@@ -77,7 +107,7 @@ public class SQLiteDatabase implements Database {
             throw new QueryException(QueryErrorCode.INTERNAL_ERROR, "Database is closing.");
         }
 
-        long start = System.nanoTime();
+        long start_ns = System.nanoTime();
 
         try {
             this.concurrentAccessLock.acquire();
@@ -128,24 +158,10 @@ public class SQLiteDatabase implements Database {
                 }
             }
 
-            long now_ns = System.nanoTime();
-            double took_ms = (now_ns - start) / 1000000d;
+            double took_ms = (System.nanoTime() - start_ns) / 1000000d;
 
-            this.stats.push(new QueryStat(start, took_ms));
+            this.stats.add(new QueryStat(start_ns, took_ms));
             this.queriesTotal++;
-
-            // Clear any old stats while we're here.
-            Iterator<QueryStat> it = this.stats.iterator();
-            while (it.hasNext()) {
-                QueryStat stat = it.next();
-                long expiresAt_ns = stat.expiresAt_ns();
-
-                if (expiresAt_ns < now_ns) {
-                    it.remove();
-                } else if (expiresAt_ns > now_ns) {
-                    break; // Everything after this point will not be expired.
-                }
-            }
 
 //            FastLogger.logStatic(LogLevel.DEBUG, "Ran `%s` in %fms, rows returned: %d.", query, took, rows.size());
 
@@ -187,19 +203,15 @@ public class SQLiteDatabase implements Database {
 
     @Override
     public JsonObject generateReport() {
-        int queued = this.concurrentAccessLock.getQueueLength();
-
         // Calculate the average query time using the samples. We're not worried about
         // concurrent access or anything. Approximate values are acceptable.
         double averageQueryTime = 0;
         int queriesLogged = 0;
+        int queued = this.concurrentAccessLock.getQueueLength();
 
-        List<QueryStat> stats = new ArrayList<>(this.stats);
         long now_ns = System.nanoTime();
-
-        for (QueryStat stat : stats) {
-            long expiresAt_ns = stat.expiresAt_ns();
-            if (now_ns > expiresAt_ns) continue; // Expired, skip it (removing does nothing).
+        for (QueryStat stat : this.stats) {
+            if (now_ns > stat.expiresAt_ns()) continue; // Expired, skip it (removing does nothing).
 
             averageQueryTime += stat.took_ms();
             queriesLogged++;
