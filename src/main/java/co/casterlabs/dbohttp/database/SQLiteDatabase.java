@@ -173,6 +173,15 @@ public class SQLiteDatabase implements Database {
             throw new QueryException(QueryErrorCode.INTERNAL_ERROR, "Internal error.");
         } finally {
             this.concurrentAccessLock.release();
+
+            if (statement != null) {
+                try {
+                    statement.close();
+                } catch (SQLException e) {
+                    // Not possible... I think?
+                    FastLogger.logStatic(LogLevel.SEVERE, "An error occurred whilst freeing statement, the database may be busted!\n%s", e);
+                }
+            }
         }
     }
 
