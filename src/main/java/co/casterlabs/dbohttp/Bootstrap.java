@@ -21,6 +21,9 @@ public class Bootstrap {
     private static final File CONFIG_FILE = new File("config.json");
 
     public static void main(String[] args) throws IOException {
+        System.setProperty("fastloggingframework.wrapsystem", "true");
+        FastLoggingFramework.setColorEnabled(false);
+
         new FileWatcher(CONFIG_FILE) {
             @Override
             public void onChange() {
@@ -95,7 +98,6 @@ public class Bootstrap {
         }
 
         // Logging
-        FastLoggingFramework.setColorEnabled(false);
         FastLoggingFramework.setDefaultLevel(config.debug ? LogLevel.DEBUG : LogLevel.INFO);
         DBOHTTP.daemon.server.getLogger().setCurrentLevel(FastLoggingFramework.getDefaultLevel());
 
