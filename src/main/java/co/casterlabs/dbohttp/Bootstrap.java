@@ -58,17 +58,6 @@ public class Bootstrap {
             return;
         }
 
-        if (DBOHTTP.config == null) {
-            DBOHTTP.daemon = new Daemon(config.port);
-            DBOHTTP.daemon.open();
-        } else {
-            if (DBOHTTP.config.port != config.port) {
-                FastLogger.logStatic(LogLevel.WARNING, "DBOHTTP does not support changing the HTTP server port while running. You will need to fully restart for this to take effect.");
-            }
-        }
-
-        DBOHTTP.config = config;
-
         // Reconfigure the JWT verifiers.
         Algorithm signingAlg = Algorithm.HMAC256(config.jwtSecret);
 
@@ -87,7 +76,7 @@ public class Bootstrap {
             DBOHTTP.heartbeat = null;
         }
 
-        if (DBOHTTP.config.heartbeatUrl != null && DBOHTTP.config.heartbeatIntervalSeconds > 0) {
+        if (config.heartbeatUrl != null && config.heartbeatIntervalSeconds > 0) {
             DBOHTTP.heartbeat = new Heartbeat();
             DBOHTTP.heartbeat.start();
         }
@@ -95,7 +84,6 @@ public class Bootstrap {
         // Logging
         FastLoggingFramework.setColorEnabled(false);
         FastLoggingFramework.setDefaultLevel(config.debug ? LogLevel.DEBUG : LogLevel.INFO);
-        DBOHTTP.daemon.server.getLogger().setCurrentLevel(FastLoggingFramework.getDefaultLevel());
 
         // Reconfigure the database.
         Database oldDb = DBOHTTP.database;
@@ -103,6 +91,18 @@ public class Bootstrap {
         if (oldDb != null) {
             oldDb.close();
         }
+
+        if (DBOHTTP.daemon == null) {
+            DBOHTTP.daemon = new Daemon(config.port);
+            DBOHTTP.daemon.open();
+        } else {
+            if (DBOHTTP.config != null && DBOHTTP.config.port != config.port) {
+                FastLogger.logStatic(LogLevel.WARNING, "DBOHTTP does not support changing the HTTP server port while running. You will need to fully restart for this to take effect.");
+            }
+        }
+        DBOHTTP.daemon.server.getLogger().setCurrentLevel(FastLoggingFramework.getDefaultLevel());
+
+        DBOHTTP.config = config;
     }
 
 }
