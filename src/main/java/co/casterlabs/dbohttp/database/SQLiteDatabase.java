@@ -7,8 +7,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Deque;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Semaphore;
@@ -28,11 +30,7 @@ public class SQLiteDatabase implements Database {
     private volatile boolean allowFurtherAccess = true;
     private Connection conn;
 
-    private long queriesRan = 0;
-    private double[] queryTimeSamples = new double[100];
-    {
-        Arrays.fill(this.queryTimeSamples, -1);
-    }
+    private Deque<QueryStat> stats = new LinkedList<>();
 
     public SQLiteDatabase(DatabaseConfig config) throws SQLException {
         this.conn = DriverManager.getConnection("jdbc:sqlite:" + config.file);
@@ -127,17 +125,28 @@ public class SQLiteDatabase implements Database {
                 }
             }
 
-            double took = (System.nanoTime() - start) / 1000000d;
+            long now_ns = System.nanoTime();
+            double took_ms = (now_ns - start) / 1000000d;
 
-            // We want to write to the samples array, over writing previous values as we go.
-            // This is effectively a circular array.
-            this.queryTimeSamples[(int) (this.queriesRan % this.queryTimeSamples.length)] = took;
-            this.queriesRan++;
+            this.stats.push(new QueryStat(start, took_ms));
 
-            FastLogger.logStatic(LogLevel.DEBUG, "Ran `%s` in %fms, rows returned: %d.", query, took, rows.size());
+            // Clear any old stats while we're here.
+            Iterator<QueryStat> it = this.stats.iterator();
+            while (it.hasNext()) {
+                QueryStat stat = it.next();
+                long expiresAt_ns = stat.expiresAt_ns();
+
+                if (expiresAt_ns < now_ns) {
+                    it.remove();
+                } else if (expiresAt_ns > now_ns) {
+                    break; // Everything after this point will not be expired.
+                }
+            }
+
+//            FastLogger.logStatic(LogLevel.DEBUG, "Ran `%s` in %fms, rows returned: %d.", query, took, rows.size());
 
             this.conn.commit();
-            return new QueryResult(rows, took);
+            return new QueryResult(rows, took_ms);
         } catch (Throwable t) {
             if (statement != null) {
                 try {
@@ -168,21 +177,26 @@ public class SQLiteDatabase implements Database {
         // Calculate the average query time using the samples. We're not worried about
         // concurrent access or anything. Approximate values are acceptable.
         double averageQueryTime = -1;
-        int averageQueryTime_sampleCount = 0;
+        int queriesRan = 0;
 
-        for (double sample : this.queryTimeSamples) {
-            if (sample == -1) continue;
-            averageQueryTime += sample;
-            averageQueryTime_sampleCount++;
+        List<QueryStat> stats = new ArrayList<>(this.stats);
+        long now_ns = System.nanoTime();
+
+        for (QueryStat stat : stats) {
+            long expiresAt_ns = stat.expiresAt_ns();
+            if (expiresAt_ns < now_ns) continue; // Expired, skip it (removing does nothing).
+
+            averageQueryTime += stat.took_ms();
+            queriesRan++;
         }
 
-        if (averageQueryTime_sampleCount > 0) {
-            averageQueryTime /= averageQueryTime_sampleCount; // Don't forget to divide!
+        if (queriesRan > 0) {
+            averageQueryTime /= queriesRan; // Don't forget to divide!
         } // Otherwise, leave it as -1.
 
         return new JsonObject()
             .put("queued", this.concurrentAccessLock.getQueueLength())
-            .put("queriesRan", this.queriesRan)
+            .put("queriesRan", queriesRan)
             .put("averageQueryTime", averageQueryTime);
     }
 
