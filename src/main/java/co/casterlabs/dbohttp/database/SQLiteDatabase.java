@@ -31,6 +31,7 @@ public class SQLiteDatabase implements Database {
     private Connection conn;
 
     private Deque<QueryStat> stats = new LinkedList<>();
+    private long queriesTotal = 0;
 
     public SQLiteDatabase(DatabaseConfig config) throws SQLException {
         this.conn = DriverManager.getConnection("jdbc:sqlite:" + config.file);
@@ -129,6 +130,7 @@ public class SQLiteDatabase implements Database {
             double took_ms = (now_ns - start) / 1000000d;
 
             this.stats.push(new QueryStat(start, took_ms));
+            this.queriesTotal++;
 
             // Clear any old stats while we're here.
             Iterator<QueryStat> it = this.stats.iterator();
@@ -174,10 +176,12 @@ public class SQLiteDatabase implements Database {
 
     @Override
     public JsonObject generateReport() {
+        int queued = this.concurrentAccessLock.getQueueLength();
+
         // Calculate the average query time using the samples. We're not worried about
         // concurrent access or anything. Approximate values are acceptable.
         double averageQueryTime = 0;
-        int queriesRan = 0;
+        int queriesLogged = 0;
 
         List<QueryStat> stats = new ArrayList<>(this.stats);
         long now_ns = System.nanoTime();
@@ -187,16 +191,17 @@ public class SQLiteDatabase implements Database {
             if (now_ns > expiresAt_ns) continue; // Expired, skip it (removing does nothing).
 
             averageQueryTime += stat.took_ms();
-            queriesRan++;
+            queriesLogged++;
         }
 
-        if (queriesRan > 1) {
-            averageQueryTime /= queriesRan; // Don't forget to divide!
+        if (queriesLogged > 1) {
+            averageQueryTime /= queriesLogged; // Don't forget to divide!
         } // Otherwise, leave it as -1.
 
         return new JsonObject()
-            .put("queued", this.concurrentAccessLock.getQueueLength())
-            .put("queriesRan", queriesRan)
+            .put("queued", queued)
+            .put("queriesRan", this.queriesTotal)
+            .put("queriesPerSecond", queriesLogged / (double) QueryStat.STATS_TIMEFRAME_S)
             .put("averageQueryTime", averageQueryTime);
     }
 
