@@ -39,8 +39,8 @@ public class SQLiteDatabase implements Database {
         Thread cleanupThread = new Thread(() -> {
             try {
                 while (!this.conn.isClosed()) {
-                    if (this.stats.size() > 100000) {
-                        // Limit it to 100k, I doubt we'll hit 100k requests per second.
+                    if (this.stats.size() > 10000) {
+                        // Limit it to 10k, I doubt we'll hit 10k requests per second.
                         // This exists to prevent memory leaking from slow threads.
                         this.stats.clear();
                         FastLogger.logStatic(LogLevel.WARNING, "Stats grew to >100k entries. An emergency clear was performed to prevent leaks.");
@@ -61,8 +61,8 @@ public class SQLiteDatabase implements Database {
 
                     Thread.sleep(1000);
                 }
-            } catch (SQLException | InterruptedException e) {
-                e.printStackTrace(); // TODO aaaaaaaaaaaaaaaaaaaa
+            } catch (Throwable t) {
+                t.printStackTrace(); // TODO aaaaaaaaaaaaaaaaaaaa
             }
         });
         cleanupThread.setName("Stats cleanup thread.");
