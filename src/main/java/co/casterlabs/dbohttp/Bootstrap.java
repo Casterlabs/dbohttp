@@ -63,6 +63,14 @@ public class Bootstrap {
 
 //        boolean isNew = DBOHTTP.config == null;
         DBOHTTP.config = config;
+        try {
+            Files.writeString(
+                CONFIG_FILE.toPath(),
+                Rson.DEFAULT
+                    .toJson(new Config())
+                    .toString(true)
+            );
+        } catch (IOException ignored) {}
 
         // Reconfigure the JWT verifiers.
         Algorithm signingAlg = Algorithm.HMAC256(config.jwtSecret);
