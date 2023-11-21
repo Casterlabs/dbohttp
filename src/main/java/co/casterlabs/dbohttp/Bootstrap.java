@@ -24,6 +24,18 @@ public class Bootstrap {
         System.setProperty("fastloggingframework.wrapsystem", "true");
         FastLoggingFramework.setColorEnabled(false);
 
+        reload();
+
+        try {
+            // Defaults...
+            Files.writeString(
+                CONFIG_FILE.toPath(),
+                Rson.DEFAULT
+                    .toJson(DBOHTTP.config)
+                    .toString(true)
+            );
+        } catch (IOException ignored) {}
+
         new FileWatcher(CONFIG_FILE) {
             @Override
             public void onChange() {
@@ -36,8 +48,6 @@ public class Bootstrap {
             }
         }
             .start();
-
-        reload();
     }
 
     private static void reload() throws IOException {
@@ -63,14 +73,6 @@ public class Bootstrap {
 
 //        boolean isNew = DBOHTTP.config == null;
         DBOHTTP.config = config;
-        try {
-            Files.writeString(
-                CONFIG_FILE.toPath(),
-                Rson.DEFAULT
-                    .toJson(new Config())
-                    .toString(true)
-            );
-        } catch (IOException ignored) {}
 
         // Reconfigure the JWT verifiers.
         Algorithm signingAlg = Algorithm.HMAC256(config.jwtSecret);

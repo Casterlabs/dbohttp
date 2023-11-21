@@ -38,7 +38,7 @@ public class SQLiteDatabase implements Database {
 
         Thread cleanupThread = new Thread(() -> {
             try {
-                while (!this.conn.isClosed()) {
+                while (this.conn != null && !this.conn.isClosed()) {
                     if (this.stats.size() > 10000) {
                         // Limit it to 10k, I doubt we'll hit 10k requests per second.
                         // This exists to prevent memory leaking from slow threads.
