@@ -4,8 +4,12 @@ import co.casterlabs.dbohttp.util.MarshallingContext;
 import co.casterlabs.rakurai.json.annotating.JsonClass;
 import co.casterlabs.rakurai.json.element.JsonArray;
 import co.casterlabs.rakurai.json.validation.JsonValidate;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 import lombok.NonNull;
 
+@NoArgsConstructor
+@AllArgsConstructor
 @JsonClass(exposeAll = true)
 class QueryRequestBody extends MarshallingContext {
     public @NonNull String sql;

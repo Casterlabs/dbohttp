@@ -2,6 +2,7 @@ package co.casterlabs.dbohttp.daemon;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.Map;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -11,6 +12,9 @@ import co.casterlabs.dbohttp.DBOHTTP;
 import co.casterlabs.dbohttp.database.QueryException;
 import co.casterlabs.dbohttp.database.QueryResult;
 import co.casterlabs.rakurai.json.Rson;
+import co.casterlabs.rakurai.json.element.JsonArray;
+import co.casterlabs.rakurai.json.element.JsonElement;
+import co.casterlabs.rakurai.json.element.JsonNull;
 import co.casterlabs.rakurai.json.element.JsonObject;
 import co.casterlabs.rhs.protocol.HttpStatus;
 import co.casterlabs.rhs.protocol.StandardHttpStatus;
@@ -41,7 +45,35 @@ public class Daemon implements Closeable, HttpListener {
         QueryRequestBody request;
 
         try {
-            request = Rson.DEFAULT.fromJson(session.getRequestBody(), QueryRequestBody.class);
+            String contentType = session.getHeader("Content-Type");
+            if (contentType == null) contentType = "text/plain";
+
+            switch (contentType.toLowerCase().split(";")[0]) {
+                case "application/json":
+                    request = Rson.DEFAULT.fromJson(session.getRequestBody(), QueryRequestBody.class);
+                    break;
+
+                case "text/plain": {
+                    String sql = session.getRequestBody();
+
+                    JsonArray params = new JsonArray();
+                    for (int i = 0; i < session.getQueryParameters().size(); i++) {
+                        params.add(JsonNull.INSTANCE);
+                    }
+                    for (Map.Entry<String, String> param : session.getQueryParameters().entrySet()) {
+                        int index = Integer.parseInt(param.getKey());
+                        JsonElement je = Rson.DEFAULT.fromJson(param.getValue(), JsonElement.class);
+
+                        params.set(index, je);
+                    }
+
+                    request = new QueryRequestBody(sql, params);
+                    break;
+                }
+
+                default:
+                    throw new IllegalArgumentException();
+            }
         } catch (Throwable t) {
             FastLogger.logStatic(LogLevel.SEVERE, "An error occurred whilst parsing body.\n%s", t);
             return errorResponse(
