@@ -176,7 +176,7 @@ public class SQLiteDatabase implements Database {
     public JsonObject generateReport() {
         // Calculate the average query time using the samples. We're not worried about
         // concurrent access or anything. Approximate values are acceptable.
-        double averageQueryTime = -1;
+        double averageQueryTime = 0;
         int queriesRan = 0;
 
         List<QueryStat> stats = new ArrayList<>(this.stats);
@@ -184,13 +184,13 @@ public class SQLiteDatabase implements Database {
 
         for (QueryStat stat : stats) {
             long expiresAt_ns = stat.expiresAt_ns();
-            if (expiresAt_ns < now_ns) continue; // Expired, skip it (removing does nothing).
+            if (now_ns > expiresAt_ns) continue; // Expired, skip it (removing does nothing).
 
             averageQueryTime += stat.took_ms();
             queriesRan++;
         }
 
-        if (queriesRan > 0) {
+        if (queriesRan > 1) {
             averageQueryTime /= queriesRan; // Don't forget to divide!
         } // Otherwise, leave it as -1.
 
