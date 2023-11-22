@@ -10,6 +10,7 @@
 
 	let connectionUrl = '';
 	let connectionPassword = '';
+	let lastQuery = '';
 
 	function getAllColumnNames(rows: any[][]) {
 		return rows
@@ -42,6 +43,9 @@
 					rows: json.results
 				});
 				list = list;
+
+				lastQuery = currentQuery;
+				localStorage.setItem('casterlabs:dbohttp:last_query', lastQuery);
 				currentQuery = '';
 			})
 			.catch(alert);
@@ -50,6 +54,7 @@
 	onMount(() => {
 		connectionUrl = localStorage.getItem('casterlabs:dbohttp:url') || '';
 		connectionPassword = localStorage.getItem('casterlabs:dbohttp:password') || '';
+		lastQuery = localStorage.getItem('casterlabs:dbohttp:last_query') || '';
 
 		if (connectionUrl.length == 0 || connectionPassword.length == 0) {
 			settingsModalVisible = true;
@@ -150,7 +155,18 @@
 			{/each}
 		</ul>
 	</div>
-	<div class="flex-0 relative">
+	<!-- svelte-ignore a11y-no-static-element-interactions -->
+	<div
+		class="flex-0 relative"
+		on:keyup={(e) => {
+			if (e.ctrlKey && e.key == 'ArrowUp') {
+				currentQuery = lastQuery;
+			}
+			if (e.key == 'Enter' && currentQuery.trim().endsWith(';')) {
+				executeQuery();
+			}
+		}}
+	>
 		<SqlEditor bind:input={currentQuery} />
 		<button class="absolute bottom-1 right-1.5" on:click={executeQuery}> Execute </button>
 	</div>
