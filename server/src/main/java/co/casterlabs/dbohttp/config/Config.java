@@ -10,6 +10,7 @@ import lombok.ToString;
 public class Config {
     public boolean debug = false;
     public int port = 10243;
+    public @Nullable SSLConfig ssl = null;
 
     public DatabaseConfig database = new DatabaseConfig();
 

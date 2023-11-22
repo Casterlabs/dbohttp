@@ -9,6 +9,7 @@ import org.jetbrains.annotations.Nullable;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 
 import co.casterlabs.dbohttp.DBOHTTP;
+import co.casterlabs.dbohttp.config.SSLConfig;
 import co.casterlabs.dbohttp.database.QueryException;
 import co.casterlabs.dbohttp.database.QueryResult;
 import co.casterlabs.rakurai.json.Rson;
@@ -35,11 +36,16 @@ public class Daemon implements Closeable, HttpListener {
 
     public final HttpServer server;
 
-    public Daemon(int port) {
-        this.server = new HttpServerBuilder()
+    public Daemon(int port, @Nullable SSLConfig ssl) {
+        HttpServerBuilder builder = new HttpServerBuilder()
             .setBehindProxy(true)
-            .setPort(port)
-            .build(this);
+            .setPort(port);
+
+        if (ssl != null) {
+            builder.setSsl(ssl.toRHS());
+        }
+
+        this.server = builder.build(this);
     }
 
     private HttpResponse handleQuery(HttpSession session) {
