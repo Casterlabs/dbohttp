@@ -6,8 +6,9 @@
 	let list: { query: string; meta: string; rows: any[] }[] = [];
 
 	let currentQuery = '';
-	let settingsModalVisible = false;
+	let executingQuery = false;
 
+	let settingsModalVisible = false;
 	let connectionUrl = '';
 	let connectionPassword = '';
 	let lastQuery = '';
@@ -26,6 +27,8 @@
 	}
 
 	function executeQuery() {
+		executingQuery = true;
+		document.body.focus();
 		fetch(connectionUrl, {
 			method: 'POST',
 			headers: new Headers({
@@ -48,7 +51,8 @@
 				localStorage.setItem('casterlabs:dbohttp:last_query', lastQuery);
 				currentQuery = '';
 			})
-			.catch(alert);
+			.catch(alert)
+			.finally(() => (executingQuery = false));
 	}
 
 	onMount(() => {
@@ -158,17 +162,23 @@
 	<!-- svelte-ignore a11y-no-static-element-interactions -->
 	<div
 		class="flex-0 relative"
+		class:opacity-60={executingQuery}
 		on:keyup={(e) => {
 			if (e.ctrlKey && e.key == 'ArrowUp') {
 				currentQuery = lastQuery;
 			}
-			if (e.key == 'Enter' && currentQuery.trim().endsWith(';')) {
-				executeQuery();
+			if (e.key == 'Enter') {
+				if (currentQuery.trim().endsWith(';')) {
+					executeQuery();
+				}
 			}
 		}}
 	>
 		<SqlEditor bind:input={currentQuery} />
 		<button class="absolute bottom-1 right-1.5" on:click={executeQuery}> Execute </button>
+		{#if executingQuery}
+			<div class="absolute inset-0" />
+		{/if}
 	</div>
 </div>
 
