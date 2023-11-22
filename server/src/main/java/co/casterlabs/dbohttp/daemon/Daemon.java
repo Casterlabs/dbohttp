@@ -16,6 +16,7 @@ import co.casterlabs.rakurai.json.element.JsonArray;
 import co.casterlabs.rakurai.json.element.JsonElement;
 import co.casterlabs.rakurai.json.element.JsonNull;
 import co.casterlabs.rakurai.json.element.JsonObject;
+import co.casterlabs.rhs.protocol.HttpMethod;
 import co.casterlabs.rhs.protocol.HttpStatus;
 import co.casterlabs.rhs.protocol.StandardHttpStatus;
 import co.casterlabs.rhs.server.HttpListener;
@@ -163,25 +164,46 @@ public class Daemon implements Closeable, HttpListener {
     @Override
     public @Nullable HttpResponse serveHttpSession(HttpSession session) {
         try {
+            String origin = session.getHeader("Origin");
+            if (origin == null) origin = "*";
+
+            if (session.getMethod() == HttpMethod.OPTIONS) {
+                return HttpResponse
+                    .newFixedLengthResponse(StandardHttpStatus.NO_CONTENT)
+                    .putHeader("Access-Control-Allow-Origin", origin)
+                    .putHeader("Access-Control-Allow-Methods", "OPTIONS, GET, POST")
+                    .putHeader("Access-Control-Max-Age", "86400")
+                    .putHeader("Access-Control-Allow-Headers", "Authorization, *");
+            }
+
             String token = session.getHeader("Authorization");
             if (token == null) throw new IllegalAccessException();
 
             if (!token.startsWith("Bearer ")) throw new IllegalAccessException();
             token = token.substring("Bearer ".length());
 
-            // TODO Verify Authorization header.
+            HttpResponse response;
+
             switch (session.getMethod()) {
                 case GET:
                     DBOHTTP.infoVerifier.verify(token); // Check it.
-                    return this.handleInfo(session);
+                    response = this.handleInfo(session);
+                    break;
 
                 case POST:
                     DBOHTTP.queryVerifier.verify(token); // Check it.
-                    return this.handleQuery(session);
+                    response = this.handleQuery(session);
+                    break;
 
                 default:
                     return NOT_IMPLEMENTED;
             }
+
+            return response
+                .putHeader("Access-Control-Allow-Origin", origin)
+                .putHeader("Access-Control-Allow-Methods", "OPTIONS, GET, POST")
+                .putHeader("Access-Control-Max-Age", "86400")
+                .putHeader("Access-Control-Allow-Headers", "Authorization, *");
         } catch (JWTVerificationException | IllegalAccessException e) {
             return HttpResponse.newFixedLengthResponse(StandardHttpStatus.UNAUTHORIZED);
         }
