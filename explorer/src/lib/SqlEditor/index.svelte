@@ -21,7 +21,7 @@
 	const console = createConsole('SQLEditor');
 
 	let virtualInput: HTMLDivElement;
-	export let input = 'SELECT * FROM test WHERE id = 123 AND active = true;';
+	export let input = 'SELECT * FROM test WHERE id = 123 AND active = true AND name = "John";';
 
 	$: input,
 		(() => {
