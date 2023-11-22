@@ -16,7 +16,7 @@ export function renderHighlight(
 						return `<span style="color: ${color};">${escapeHtml(val)}</span>`;
 					}
 				} else {
-					if (filter.includes(val.toUpperCase())) {
+					if (filter.includes(val)) {
 						return `<span style="color: ${color};">${escapeHtml(val)}</span>`;
 					}
 				}
