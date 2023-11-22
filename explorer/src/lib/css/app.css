@@ -1,0 +1,78 @@
+/* Tailwind */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* - */
+
+a {
+	color: inherit;
+}
+
+pre {
+	display: inline-block;
+}
+
+.text-link,
+.hover\:text-link:hover,
+.focus\:text-link:focus {
+	text-decoration: underline;
+}
+
+#css-intermediate.dark-theme .only-when-light {
+	display: none !important;
+}
+
+#css-intermediate:not(.dark-theme) .only-when-dark {
+	display: none !important;
+}
+
+/* Icons */
+
+icon {
+	display: block;
+	width: 1.5rem;
+	height: 1.5rem;
+}
+
+icon > svg {
+	width: 100%;
+	height: 100%;
+}
+
+icon > svg.icon-service * {
+	/* fill: currentColor !important; */
+}
+
+icon > svg.icon-outline * {
+	stroke: currentColor;
+}
+
+#css-intermediate.dark-theme icon > svg.icon-outline {
+	display: none;
+}
+
+#css-intermediate:not(.dark-theme) icon > svg.icon-solid {
+	display: none;
+}
+
+/* Scroll Bar */
+
+::-webkit-scrollbar {
+	width: 5px;
+	height: 5px;
+}
+
+::-webkit-scrollbar-track {
+	background-color: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+	background-color: var(--base9);
+	border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+	background-color: var(--base11);
+}
