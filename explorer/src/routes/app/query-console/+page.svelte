@@ -116,7 +116,7 @@
 						class="overflow-hidden text-base-12 rounded-md border border-base-6 bg-base-2 shadow-sm text-sm align-bottom"
 						style="overflow-x: auto;"
 					>
-						<table>
+						<table class="min-w-full">
 							<thead class="bg-base-6">
 								<tr>
 									{#each columnNames as name}
