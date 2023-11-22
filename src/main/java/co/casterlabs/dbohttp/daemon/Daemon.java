@@ -142,8 +142,8 @@ public class Daemon implements Closeable, HttpListener {
                         "info",
                         new JsonObject()
                             .put("driver", DBOHTTP.config.database.driver.name())
-                            .put("tables", Rson.DEFAULT.toJson(DBOHTTP.database.listTables()))
                             .put("report", DBOHTTP.database.generateReport())
+                            .put("tables", Rson.DEFAULT.toJson(DBOHTTP.database.listTables()))
                     )
                     .putNull("error")
                     .toString(true)
