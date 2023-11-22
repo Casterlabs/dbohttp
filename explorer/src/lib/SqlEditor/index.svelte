@@ -12,6 +12,7 @@
 			'NOT',
 			'FROM',
 			'IN',
+			'LIMIT',
 			'AND',
 			'OR'
 		],
