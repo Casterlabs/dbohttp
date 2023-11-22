@@ -7,9 +7,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.util.Collections;
 import java.util.Deque;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.Semaphore;
@@ -17,6 +15,7 @@ import java.util.concurrent.Semaphore;
 import co.casterlabs.dbohttp.config.DatabaseConfig;
 import co.casterlabs.dbohttp.database.QueryException.QueryErrorCode;
 import co.casterlabs.dbohttp.util.MarshallingContext;
+import co.casterlabs.dbohttp.util.Profiler;
 import co.casterlabs.rakurai.json.element.JsonArray;
 import co.casterlabs.rakurai.json.element.JsonObject;
 import lombok.NonNull;
@@ -109,71 +108,77 @@ public class SQLiteDatabase implements Database {
             throw new QueryException(QueryErrorCode.INTERNAL_ERROR, "Database is closing.");
         }
 
-        long start_ns = System.nanoTime();
+        Profiler profiler = new Profiler();
 
-        try {
-            this.concurrentAccessLock.acquire();
-        } catch (InterruptedException ignored) {
-            throw new QueryException(QueryErrorCode.INTERNAL_ERROR, "Internal error.");
-        }
+        profiler.start("Access Lock Acquisition", () -> {
+            try {
+                this.concurrentAccessLock.acquire();
+            } catch (InterruptedException ignored) {
+                throw new QueryException(QueryErrorCode.INTERNAL_ERROR, "Internal error.");
+            }
+        });
 
         PreparedStatement statement = null;
         boolean dirty = false;
+        boolean wasSuccessful = false;
 
         try {
-            statement = this.prepare(context, query, parameters);
+            statement = profiler.start("Statement Preparation", () -> this.prepare(context, query, parameters));
             ResultSet resultSet = null;
 
             try {
-                if (statement.execute()) {
-                    resultSet = statement.getResultSet();
-                }
+                PreparedStatement $statement_ptr = statement;
+                boolean hasResult = profiler.start("Statement Execution", () -> $statement_ptr.execute());
                 dirty = true;
-            } catch (SQLException e) {
+
+                if (hasResult) {
+                    resultSet = profiler.start("Result Gathering", () -> $statement_ptr.getResultSet());
+                }
+            } catch (Throwable e) {
                 checkForSpecificError(e);
                 FastLogger.logStatic(LogLevel.SEVERE, "An error occurred whilst executing query.\n%s", e);
                 throw new QueryException(QueryErrorCode.FAILED_TO_EXECUTE, "An error occurred whilst executing query.");
             }
 
             ResultSetMetaData metadata = resultSet == null ? null : resultSet.getMetaData();
-            List<JsonObject> rows = Collections.emptyList();
+            JsonArray rows = new JsonArray();
 
             // We want to skip the row marshalling process if we can...
-            if (metadata != null && metadata.getColumnCount() > 0) {
-                rows = new LinkedList<>(); // Allocate a list...
-
-                // Get the column names.
-                String[] columns = new String[metadata.getColumnCount()];
-                for (int i = 0; i < columns.length; i++) {
-                    columns[i] = metadata.getColumnLabel(i + 1);
-                }
-
-                while (resultSet.next()) {
-                    JsonObject row = new JsonObject();
-                    for (String columnName : columns) {
-                        row.put(
-                            columnName,
-                            context.javaToJson(resultSet.getObject(columnName))
-                        );
+            if (metadata == null || metadata.getColumnCount() == 0) {
+                profiler.log("Result Marshalling", 0);
+            } else {
+                ResultSet $resultSet_ptr = resultSet;
+                profiler.start("Result Marshalling", () -> {
+                    // Get the column names.
+                    String[] columns = new String[metadata.getColumnCount()];
+                    for (int i = 0; i < columns.length; i++) {
+                        columns[i] = metadata.getColumnLabel(i + 1);
                     }
-                    rows.add(row);
-                }
+
+                    while ($resultSet_ptr.next()) {
+                        JsonObject row = new JsonObject();
+                        for (String columnName : columns) {
+                            row.put(
+                                columnName,
+                                context.javaToJson($resultSet_ptr.getObject(columnName))
+                            );
+                        }
+                        rows.add(row);
+                    }
+                });
             }
-
-            double took_ms = (System.nanoTime() - start_ns) / 1000000d;
-
-            this.stats.add(new QueryStat(start_ns, took_ms));
-            this.queriesTotal++;
 
 //            FastLogger.logStatic(LogLevel.DEBUG, "Ran `%s` in %fms, rows returned: %d.", query, took, rows.size());
 
-            this.conn.commit();
-            return new QueryResult(rows, took_ms);
+            profiler.start("Database Commit", () -> this.conn.commit());
+            wasSuccessful = true;
+
+            return new QueryResult(rows, profiler /* mutable */);
         } catch (Throwable t) {
             if (dirty) {
                 try {
-                    this.conn.rollback();
-                } catch (SQLException e) {
+                    profiler.start("Database Rollback", () -> this.conn.rollback());
+                } catch (Throwable e) {
                     // Not possible... I think?
                     FastLogger.logStatic(LogLevel.SEVERE, "An error occurred whilst rolling back, the database may be busted!\n%s", e);
                 }
@@ -192,14 +197,20 @@ public class SQLiteDatabase implements Database {
         } finally {
             this.concurrentAccessLock.release();
 
-            if (statement != null) {
-                try {
-                    statement.close();
-                } catch (SQLException e) {
-                    // Not possible... I think?
-                    FastLogger.logStatic(LogLevel.SEVERE, "An error occurred whilst freeing statement, the database may be busted!\n%s", e);
+            PreparedStatement $statement_ptr = statement;
+            profiler.start("Statement Cleanup", () -> {
+                if ($statement_ptr != null) {
+                    try {
+                        $statement_ptr.close();
+                    } catch (SQLException e) {
+                        // Not possible... I think?
+                        FastLogger.logStatic(LogLevel.SEVERE, "An error occurred whilst freeing statement, the database may be busted!\n%s", e);
+                    }
                 }
-            }
+            });
+
+            this.stats.add(new QueryStat(System.nanoTime(), profiler.timeSpent_ms, wasSuccessful));
+            this.queriesTotal++;
         }
     }
 
@@ -211,20 +222,29 @@ public class SQLiteDatabase implements Database {
         int queriesLogged = 0;
         int queued = this.concurrentAccessLock.getQueueLength();
 
+        int successes = 0;
+
         long now_ns = System.nanoTime();
         for (QueryStat stat : this.stats) {
             if (now_ns > stat.expiresAt_ns()) continue; // Expired, skip it (removing does nothing).
 
             averageQueryTime += stat.took_ms();
             queriesLogged++;
+
+            if (stat.wasSuccessful()) {
+                successes++;
+            }
         }
 
         if (queriesLogged > 1) {
             averageQueryTime /= queriesLogged; // Don't forget to divide!
         } // Otherwise, leave it as -1.
 
+        double successRate = successes / (double) queriesLogged;
+
         return new JsonObject()
             .put("queued", queued)
+            .put("successRate", successRate)
             .put("queriesRan", this.queriesTotal)
             .put("queriesPerSecond", queriesLogged / (double) QueryStat.STATS_TIMEFRAME_S)
             .put("averageQueryTime", averageQueryTime);
@@ -239,8 +259,9 @@ public class SQLiteDatabase implements Database {
             JsonArray.EMPTY_ARRAY
         )
             .rows()
+            .toList()
             .parallelStream()
-            .map((r) -> r.getString("name"))
+            .map((r) -> r.getAsObject().getString("name"))
             .toList();
     }
 
@@ -265,7 +286,10 @@ public class SQLiteDatabase implements Database {
         }
     }
 
-    private static void checkForSpecificError(SQLException e) throws QueryException {
+    private static void checkForSpecificError(Throwable t) throws QueryException {
+        if (!(t instanceof SQLException)) return;
+
+        SQLException e = (SQLException) t;
         switch (e.getErrorCode()) {
             case 1: {
                 String message = e.getMessage();

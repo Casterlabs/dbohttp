@@ -85,21 +85,28 @@ public class Daemon implements Closeable, HttpListener {
         }
 
         try {
+            long start_ns = System.nanoTime();
             QueryResult result = DBOHTTP.database.query(request, request.sql, request.params);
 
-            return HttpResponse.newFixedLengthResponse(
-                StandardHttpStatus.OK,
-                new JsonObject()
-                    .put("results", Rson.DEFAULT.toJson(result.rows()))
-                    .put(
-                        "meta",
-                        new JsonObject()
-                            .put("took", result.took())
-                            .put("rowsReturned", result.rows().size())
-                    )
-                    .putNull("error")
-                    .toString(true)
-            )
+            // Build the response object .
+            JsonObject profile = result.profiler().toJson();
+            JsonObject meta = new JsonObject()
+                .put("profile", profile)
+//                .put("took", took_ms)
+                .put("rowsReturned", result.rows().size());
+
+            JsonObject response = new JsonObject()
+                .put("results", result.rows())
+                .put("meta", meta)
+                .putNull("error");
+
+            // One last profile...
+            double took_ms = (System.nanoTime() - start_ns) / 1000000d;
+            meta.put("took", took_ms);
+            profile.put("Miscellaneous", took_ms - result.profiler().timeSpent_ms);
+
+            // Okay, we're done. Off to RHS you go.
+            return HttpResponse.newFixedLengthResponse(StandardHttpStatus.OK, response.toString(true))
                 .setMimeType("application/json; charset=utf-8")
                 .putHeader("X-Modified", "yes");
         } catch (UnsupportedOperationException | IllegalArgumentException e) {
