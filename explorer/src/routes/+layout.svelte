@@ -49,7 +49,7 @@
 	<slot />
 
 	<button
-		class="absolute translate-y-0.5 top-4 lg:right-4 text-base-11"
+		class="absolute translate-y-0.5 top-4 right-4 text-base-11"
 		on:click={() => {
 			useLightTheme = !useLightTheme;
 			console.log('Switching theme to:', useLightTheme ? 'light' : 'dark');
