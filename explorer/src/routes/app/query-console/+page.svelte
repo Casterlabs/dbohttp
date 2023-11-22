@@ -4,25 +4,12 @@
 	import { onMount } from 'svelte';
 
 	let list: { query: string; meta: string; rows: any[] }[] = [];
-	let connectionModalVisible = false;
+
+	let currentQuery = '';
+	let settingsModalVisible = false;
 
 	let connectionUrl = '';
 	let connectionPassword = '';
-
-	list.push({
-		query: "SELECT * FROM test WHERE id = 123 AND active = true AND name = 'John';",
-		meta: '{\n  "profile": {\n    "Access Lock Acquisition": 0.00728,\n    "Statement Preparation": 0.476203,\n    "Statement Execution": 0.141481,\n    "Result Gathering": 0.02228,\n    "Result Marshalling": 5.790833,\n    "Database Commit": 0.04904,\n    "Statement Cleanup": 0.00988,\n    "Miscellaneous": 0.12472100000000097\n  },\n  "rowsReturned": 122,\n  "took": 6.621718\n}',
-		rows: [
-			{
-				id: 123,
-				active: true,
-				name: 'John',
-				occupation: undefined,
-				profilePicture: [],
-				address: null
-			}
-		]
-	});
 
 	function getAllColumnNames(rows: any[][]) {
 		return rows
@@ -37,19 +24,42 @@
 			);
 	}
 
+	function executeQuery() {
+		fetch(connectionUrl, {
+			method: 'POST',
+			headers: new Headers({
+				Authorization: 'Bearer ' + connectionPassword,
+				'Content-Type': 'text/plain'
+			}),
+			body: currentQuery
+		})
+			.then((response) => response.json())
+			.then((json) => {
+				if (json.error) throw `[${json.error.code}] ${json.error.message}`;
+				list.push({
+					query: currentQuery,
+					meta: JSON.stringify(json.meta, null, 2),
+					rows: json.results
+				});
+				list = list;
+				currentQuery = '';
+			})
+			.catch(alert);
+	}
+
 	onMount(() => {
 		connectionUrl = localStorage.getItem('casterlabs:dbohttp:url') || '';
 		connectionPassword = localStorage.getItem('casterlabs:dbohttp:password') || '';
 
 		if (connectionUrl.length == 0 || connectionPassword.length == 0) {
-			connectionModalVisible = true;
+			settingsModalVisible = true;
 		}
 	});
 </script>
 
-{#if connectionModalVisible}
+{#if settingsModalVisible}
 	<!-- svelte-ignore a11y-label-has-associated-control -->
-	<Modal on:close={() => (connectionModalVisible = false)}>
+	<Modal on:close={() => (settingsModalVisible = false)}>
 		<span slot="title">Settings</span>
 		<div class="pt-2 space-y-4">
 			<div>
@@ -99,8 +109,9 @@
 
 					<div
 						class="overflow-hidden text-base-12 rounded-md border border-base-6 bg-base-2 shadow-sm text-sm align-bottom"
+						style="overflow-x: auto;"
 					>
-						<table class="min-w-full">
+						<table>
 							<thead class="bg-base-6">
 								<tr>
 									{#each columnNames as name}
@@ -139,14 +150,15 @@
 			{/each}
 		</ul>
 	</div>
-	<div class="flex-0">
-		<SqlEditor />
+	<div class="flex-0 relative">
+		<SqlEditor bind:input={currentQuery} />
+		<button class="absolute bottom-1 right-1.5" on:click={executeQuery}> Execute </button>
 	</div>
 </div>
 
 <button
 	class="absolute translate-y-0.5 top-4 right-12 text-base-11"
-	on:click={() => (connectionModalVisible = true)}
+	on:click={() => (settingsModalVisible = true)}
 >
 	<icon class="w-5 h-5" data-icon="icon/cog" />
 </button>

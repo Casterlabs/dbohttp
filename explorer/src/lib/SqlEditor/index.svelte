@@ -27,7 +27,7 @@
 	$: input,
 		(() => {
 			if (!virtualInput) return;
-			if (virtualInput.innerText.trim() != input) {
+			if (virtualInput.innerText.trim().replaceAll(/\u00a0/g, ' ') != input) {
 				virtualInput.innerText = input;
 			}
 			renderHighlight(virtualInput, KEYWORDS);
@@ -49,7 +49,7 @@
 				return; // Don't trigger an update.
 			}
 
-			input = virtualInput.innerText.trim();
+			input = virtualInput.innerText.trim().replaceAll(/\u00a0/g, ' ');
 		}}
 	/>
 
