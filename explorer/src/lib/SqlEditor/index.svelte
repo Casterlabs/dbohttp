@@ -21,35 +21,41 @@
 	const console = createConsole('SQLEditor');
 
 	let virtualInput: HTMLDivElement;
-	export let input = 'SELECT * FROM test WHERE id = 123 AND active = true AND name = "John";';
+	export let input = '';
 
 	$: input,
 		(() => {
 			if (!virtualInput) return;
-			if (virtualInput.innerText != input) {
+			if (virtualInput.innerText.trim() != input) {
 				virtualInput.innerText = input;
 			}
 			renderHighlight(virtualInput, KEYWORDS);
 		})();
 </script>
 
-<!-- svelte-ignore a11y-no-abstract-role -->
-<div
-	role="input"
-	contenteditable="true"
-	class="resize-y h-24 px-1.5 py-1 block w-full text-base-12 rounded-md border transition hover:border-base-8 border-base-7 bg-base-1 shadow-sm focus:border-primary-7 focus:outline-none focus:ring-1 focus:ring-primary-7 text-sm"
-	bind:this={virtualInput}
-	on:keyup={(e) => {
-		if (
-			e.ctrlKey ||
-			['Shift', 'Control', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)
-		) {
-			return; // Don't trigger an update.
-		}
+<div class="relative">
+	<!-- svelte-ignore a11y-no-abstract-role -->
+	<div
+		role="input"
+		contenteditable="true"
+		class="resize-y h-24 px-1.5 py-1 block w-full text-base-12 rounded-md border transition hover:border-base-8 border-base-7 bg-base-1 shadow-sm focus:border-primary-7 focus:outline-none focus:ring-1 focus:ring-primary-7 text-sm"
+		bind:this={virtualInput}
+		on:keyup={(e) => {
+			if (
+				e.ctrlKey ||
+				['Shift', 'Control', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)
+			) {
+				return; // Don't trigger an update.
+			}
 
-		input = virtualInput.innerText;
-	}}
-/>
+			input = virtualInput.innerText.trim();
+		}}
+	/>
+
+	{#if input.length == 0}
+		<span class="absolute top-1.5 left-2 text-base-7 text-sm"> SELECT * FROM ... </span>
+	{/if}
+</div>
 
 <style>
 	:global(#css-intermediate) {
