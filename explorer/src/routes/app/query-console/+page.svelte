@@ -56,9 +56,15 @@
 	}
 
 	onMount(() => {
-		connectionUrl = localStorage.getItem('casterlabs:dbohttp:url') || '';
-		connectionPassword = localStorage.getItem('casterlabs:dbohttp:password') || '';
 		lastQuery = localStorage.getItem('casterlabs:dbohttp:last_query') || '';
+
+		const search = new URLSearchParams(location.search);
+		if (search.has('url')) {
+			connectionUrl = search.get('url') as string;
+		}
+		if (search.has('password')) {
+			connectionPassword = search.get('password') as string;
+		}
 
 		if (connectionUrl.length == 0 || connectionPassword.length == 0) {
 			settingsModalVisible = true;
@@ -77,9 +83,6 @@
 					class="px-1.5 py-1 block w-full text-base-12 rounded-md border transition hover:border-base-8 border-base-7 bg-base-1 shadow-sm focus:border-primary-7 focus:outline-none focus:ring-1 focus:ring-primary-7 text-sm"
 					placeholder="https://example.com:10243"
 					bind:value={connectionUrl}
-					on:change={() => {
-						localStorage.setItem('casterlabs:dbohttp:url', connectionUrl);
-					}}
 				/>
 			</div>
 
@@ -89,9 +92,6 @@
 					type="password"
 					class="px-1.5 py-1 block w-full text-base-12 rounded-md border transition hover:border-base-8 border-base-7 bg-base-1 shadow-sm focus:border-primary-7 focus:outline-none focus:ring-1 focus:ring-primary-7 text-sm"
 					bind:value={connectionPassword}
-					on:change={() => {
-						localStorage.setItem('casterlabs:dbohttp:password', connectionPassword);
-					}}
 				/>
 			</div>
 		</div>
