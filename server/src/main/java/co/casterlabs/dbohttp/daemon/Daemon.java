@@ -113,7 +113,7 @@ public class Daemon implements Closeable, HttpListener {
             profile.put("Miscellaneous", took_ms - result.profiler().timeSpent_ms);
 
             // Okay, we're done. Off to RHS you go.
-            return HttpResponse.newFixedLengthResponse(StandardHttpStatus.OK, response.toString(true))
+            return HttpResponse.newFixedLengthResponse(StandardHttpStatus.OK, response.toString(false))
                 .setMimeType("application/json; charset=utf-8")
                 .putHeader("X-Modified", "yes");
         } catch (UnsupportedOperationException | IllegalArgumentException e) {
@@ -153,7 +153,7 @@ public class Daemon implements Closeable, HttpListener {
                             .put("tables", Rson.DEFAULT.toJson(DBOHTTP.database.listTables()))
                     )
                     .putNull("error")
-                    .toString(true)
+                    .toString(false)
             )
                 .setMimeType("application/json; charset=utf-8")
                 .putHeader("X-Modified", "no");
@@ -241,7 +241,7 @@ public class Daemon implements Closeable, HttpListener {
                         .put("code", code)
                         .put("message", message)
                 )
-                .toString(true)
+                .toString(false)
         )
             .setMimeType("application/json; charset=utf-8");
     }
