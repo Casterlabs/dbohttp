@@ -10,11 +10,13 @@
 			'LIKE',
 			'BETWEEN',
 			'NOT',
-			'FROM',
 			'IN',
 			'LIMIT',
 			'AND',
-			'OR'
+			'OR',
+			'ORDER',
+			'BY',
+			'IS'
 		],
 		'var(--sql-keyword-2)': ['NULL', 'TRUE', 'FALSE'],
 		'var(--sql-keyword-3)': /^[0-9]+$/
