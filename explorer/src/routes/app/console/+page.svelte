@@ -1,6 +1,6 @@
 <script lang="ts">
 	import SQLEditor from '$lib/app/SQLEditor.svelte';
-	import { connectionUrl, connectionPassword } from '$lib/app/stores';
+	import { connectionUrl, connectionPassword, checkSettings } from '$lib/app/stores';
 	import { onMount } from 'svelte';
 
 	let list: { query: string; meta: string; rows: any[] }[] = [];
@@ -28,7 +28,7 @@
 		fetch($connectionUrl, {
 			method: 'POST',
 			headers: new Headers({
-				Authorization: 'Bearer ' + connectionPassword,
+				Authorization: 'Bearer ' + $connectionPassword,
 				'Content-Type': 'text/plain'
 			}),
 			body: currentQuery
@@ -52,6 +52,7 @@
 	}
 
 	onMount(() => {
+		checkSettings();
 		lastQuery = localStorage.getItem('casterlabs:dbohttp:last_query') || '';
 	});
 </script>

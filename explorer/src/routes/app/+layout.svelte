@@ -1,19 +1,13 @@
 <script lang="ts">
-	import { connectionUrl, connectionPassword } from '$lib/app/stores';
+	import { checkSettings, loadSettings } from '$lib/app/stores';
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
-	import { goto } from '$app/navigation';
 
 	let sidebarItems = [
 		{
-			icon: 'cube',
+			icon: 'cube-transparent',
 			name: 'Explorer',
 			href: '/app/explorer'
-		},
-		{
-			icon: 'pencil-square',
-			name: 'Insert',
-			href: '/app/insert'
 		},
 		{
 			icon: 'command-line',
@@ -28,17 +22,8 @@
 	];
 
 	onMount(() => {
-		const search = new URLSearchParams(location.search);
-		if (search.has('url')) {
-			connectionUrl.set(search.get('url') as string);
-		}
-		if (search.has('password')) {
-			connectionPassword.set(search.get('password') as string);
-		}
-
-		if ($connectionUrl.length == 0 || $connectionPassword.length == 0) {
-			goto('/app/settings');
-		}
+		loadSettings();
+		checkSettings();
 	});
 </script>
 
