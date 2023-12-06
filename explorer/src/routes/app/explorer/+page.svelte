@@ -81,7 +81,7 @@
 </script>
 
 <div class="-mx-4 px-2 mt-3 mb-4 border-b border-base-8">
-	<nav class="-mb-1.5 flex space-x-4 w-full overflow-auto hide-scrollbar">
+	<nav class="-mb-px flex space-x-4 w-full overflow-auto hide-scrollbar">
 		{#each tables as table}
 			{@const isSelected = currentTable == table}
 			<button
