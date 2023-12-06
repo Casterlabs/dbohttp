@@ -107,27 +107,32 @@
 				Debug
 			</button>
 		</p>
-		<button
-			class:text-base-9={offset == 0}
-			disabled={offset == 0}
-			on:click={() => {
-				offset -= QUERY_LIMIT;
-				loadData();
-			}}
-		>
-			Previous
-		</button>
-		&bull;
-		<button
-			class:text-base-9={offset + QUERY_LIMIT > total}
-			disabled={offset + QUERY_LIMIT > total}
-			on:click={() => {
-				offset += QUERY_LIMIT;
-				loadData();
-			}}
-		>
-			Next
-		</button>
+		<div>
+			<button
+				class:text-base-9={offset == 0}
+				disabled={offset == 0}
+				on:click={() => {
+					offset -= QUERY_LIMIT;
+					loadData();
+				}}
+			>
+				Previous
+			</button>
+			&bull;
+			<button
+				class:text-base-9={offset + QUERY_LIMIT > total}
+				disabled={offset + QUERY_LIMIT > total}
+				on:click={() => {
+					offset += QUERY_LIMIT;
+					loadData();
+				}}
+			>
+				Next
+			</button>
+		</div>
+		<div>
+			<button on:click={loadData}> Refresh </button>
+		</div>
 	</div>
 {:else}
 	<p class="mt-2 mb-12 text-center text-base-11 text-sm">Empty.</p>
