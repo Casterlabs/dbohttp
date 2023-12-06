@@ -4,7 +4,7 @@
 	import '$lib/css/colors/primary.css';
 	import '$lib/css/colors/misc.css';
 
-	import iconsHook from '$lib/layout/iconHook';
+	import iconsHook from '$lib/iconHook';
 	import { onMount } from 'svelte';
 
 	let useLightTheme = false;
