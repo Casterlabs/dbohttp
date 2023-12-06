@@ -21,9 +21,12 @@
 		}
 	];
 
+	let ready = false;
+
 	onMount(() => {
 		loadSettings();
 		checkSettings();
+		ready = true;
 	});
 </script>
 
@@ -45,8 +48,10 @@
 			{/each}
 		</ul>
 	</div>
-	<div class="flex-1 overflow-auto p-2 pl-4">
-		<slot />
+	<div class="flex-1 overflow-x-hidden overflow-y-auto py-2 px-4">
+		{#if ready}
+			<slot />
+		{/if}
 	</div>
 </div>
 
