@@ -1,17 +1,13 @@
 <script lang="ts">
-	import SqlEditor from '$lib/SqlEditor/index.svelte';
-	import Modal from '$lib/layout/Modal.svelte';
+	import SQLEditor from '$lib/app/SQLEditor.svelte';
+	import { connectionUrl, connectionPassword } from '$lib/app/stores';
 	import { onMount } from 'svelte';
 
 	let list: { query: string; meta: string; rows: any[] }[] = [];
 
 	let currentQuery = '';
-	let executingQuery = false;
-
-	let settingsModalVisible = false;
-	let connectionUrl = '';
-	let connectionPassword = '';
 	let lastQuery = '';
+	let executingQuery = false;
 
 	function getAllColumnNames(rows: any[][]) {
 		return rows
@@ -29,7 +25,7 @@
 	function executeQuery() {
 		executingQuery = true;
 		document.body.focus();
-		fetch(connectionUrl, {
+		fetch($connectionUrl, {
 			method: 'POST',
 			headers: new Headers({
 				Authorization: 'Bearer ' + connectionPassword,
@@ -57,46 +53,8 @@
 
 	onMount(() => {
 		lastQuery = localStorage.getItem('casterlabs:dbohttp:last_query') || '';
-
-		const search = new URLSearchParams(location.search);
-		if (search.has('url')) {
-			connectionUrl = search.get('url') as string;
-		}
-		if (search.has('password')) {
-			connectionPassword = search.get('password') as string;
-		}
-
-		if (connectionUrl.length == 0 || connectionPassword.length == 0) {
-			settingsModalVisible = true;
-		}
 	});
 </script>
-
-{#if settingsModalVisible}
-	<!-- svelte-ignore a11y-label-has-associated-control -->
-	<Modal on:close={() => (settingsModalVisible = false)}>
-		<span slot="title">Settings</span>
-		<div class="pt-2 space-y-4">
-			<div>
-				<label>Server URL:</label>
-				<input
-					class="px-1.5 py-1 block w-full text-base-12 rounded-md border transition hover:border-base-8 border-base-7 bg-base-1 shadow-sm focus:border-primary-7 focus:outline-none focus:ring-1 focus:ring-primary-7 text-sm"
-					placeholder="https://example.com:10243"
-					bind:value={connectionUrl}
-				/>
-			</div>
-
-			<div>
-				<label>Token:</label>
-				<input
-					type="password"
-					class="px-1.5 py-1 block w-full text-base-12 rounded-md border transition hover:border-base-8 border-base-7 bg-base-1 shadow-sm focus:border-primary-7 focus:outline-none focus:ring-1 focus:ring-primary-7 text-sm"
-					bind:value={connectionPassword}
-				/>
-			</div>
-		</div>
-	</Modal>
-{/if}
 
 <div class="flex flex-col h-full">
 	<div class="flex-1 relative">
@@ -107,7 +65,7 @@
 					<div>
 						<icon
 							class="inline-block align-middle h-5 w-5 -translate-y-px"
-							data-icon="icon/arrow-long-right"
+							data-icon="arrow-long-right"
 						/>
 						<span class="ml-1.5 font-mono">{result.query}</span>
 
@@ -174,17 +132,10 @@
 			}
 		}}
 	>
-		<SqlEditor bind:input={currentQuery} />
+		<SQLEditor bind:input={currentQuery} />
 		<button class="absolute bottom-1 right-1.5" on:click={executeQuery}> Execute </button>
 		{#if executingQuery}
 			<div class="absolute inset-0" />
 		{/if}
 	</div>
 </div>
-
-<button
-	class="absolute translate-y-0.5 top-4 right-12 text-base-11"
-	on:click={() => (settingsModalVisible = true)}
->
-	<icon class="w-5 h-5" data-icon="icon/cog" />
-</button>

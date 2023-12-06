@@ -49,6 +49,7 @@
 	<slot />
 
 	<button
+		id="dark-light-toggle"
 		class="absolute translate-y-0.5 top-4 right-4 text-base-11"
 		on:click={() => {
 			useLightTheme = !useLightTheme;
