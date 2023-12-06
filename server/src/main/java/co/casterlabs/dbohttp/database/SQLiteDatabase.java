@@ -236,11 +236,12 @@ public class SQLiteDatabase implements Database {
             }
         }
 
+        double successRate = -1;
+
         if (queriesLogged > 1) {
             averageQueryTime /= queriesLogged; // Don't forget to divide!
+            successRate = successes / (double) queriesLogged;
         } // Otherwise, leave it as -1.
-
-        double successRate = successes / (double) queriesLogged;
 
         return new JsonObject()
             .put("queued", queued)
