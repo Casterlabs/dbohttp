@@ -29,7 +29,7 @@
 
 				<button class="absolute top-4 right-3.5 text-base-12" on:click={close}>
 					<span class="sr-only"> Close </span>
-					<icon data-icon="icon/x-mark" />
+					<icon data-icon="x-mark" />
 				</button>
 
 				<div class="text-base-11">

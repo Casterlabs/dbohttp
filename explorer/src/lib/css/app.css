@@ -41,20 +41,8 @@ icon > svg {
 	height: 100%;
 }
 
-icon > svg.icon-service * {
-	/* fill: currentColor !important; */
-}
-
-icon > svg.icon-outline * {
+icon > svg * {
 	stroke: currentColor;
-}
-
-#css-intermediate.dark-theme icon > svg.icon-outline {
-	display: none;
-}
-
-#css-intermediate:not(.dark-theme) icon > svg.icon-solid {
-	display: none;
 }
 
 /* Scroll Bar */

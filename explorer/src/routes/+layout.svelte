@@ -42,7 +42,7 @@
 
 <div
 	id="css-intermediate"
-	class="relative w-full h-full bg-base-1 text-base-12 overflow-auto p-2"
+	class="relative w-full h-full bg-base-1 text-base-12 overflow-auto"
 	class:dark-theme={!useLightTheme}
 	data-theme-dark={!useLightTheme}
 >
@@ -60,9 +60,9 @@
 		}}
 	>
 		{#if useLightTheme}
-			<icon class="w-5 h-5" data-icon="icon/sun" />
+			<icon class="w-5 h-5" data-icon="sun" />
 		{:else}
-			<icon class="w-5 h-5" data-icon="icon/moon" />
+			<icon class="w-5 h-5" data-icon="moon" />
 		{/if}
 	</button>
 </div>
