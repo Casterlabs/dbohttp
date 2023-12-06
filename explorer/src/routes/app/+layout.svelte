@@ -30,15 +30,17 @@
 	});
 </script>
 
-<div class="flex flex-row w-full h-full">
-	<div class="border-r border-base-4 bg-base-2 w-fit h-full p-4">
-		<ul class="space-y-4">
+<div class="flex flex-col-reverse md:flex-row w-full h-full">
+	<div
+		class="border-r border-base-4 bg-base-2 w-full h-fit md:w-fit md:h-full p-2 md:p-4 text-center"
+	>
+		<ul class="space-x-6 md:space-x-0 md:space-y-4">
 			{#each sidebarItems as { icon, name, href }}
 				{@const isSelected = $page.url.pathname == href}
-				<li title={name}>
+				<li class="inline-block md:block" title={name}>
 					<a
 						{href}
-						class="block p-4 border border-base-4 bg-base-2 hover:bg-base-5 hover:border-base-7 rounded"
+						class="inline-block md:block p-2 md:p-4 border border-base-4 bg-base-2 hover:bg-base-5 hover:border-base-7 rounded"
 						class:bg-base-6={isSelected}
 						class:border-base-7={isSelected}
 					>
@@ -59,7 +61,7 @@
 	:global(#dark-light-toggle) {
 		top: unset !important;
 		right: unset !important;
-		bottom: 2.25rem;
+		bottom: 1.65rem;
 		left: 2.25rem;
 	}
 </style>
