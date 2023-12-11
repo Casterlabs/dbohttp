@@ -97,7 +97,7 @@
 	</nav>
 </div>
 
-{#if rows.length > 1}
+{#if rows.length > 0}
 	<Rows {rows} />
 
 	<div class="mt-2 mb-12 text-center text-base-11">
