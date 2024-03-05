@@ -62,6 +62,7 @@
 										bind:value={newColumnValue}
 									/>
 									<button
+										title="Save"
 										class="absolute inset-y-0 right-0 flex items-center justify-center text-base-12"
 										on:click={() => {
 											const data = {
@@ -92,6 +93,7 @@
 									{/if}
 									{#if allowEditing}
 										<button
+											title="Edit"
 											disabled={rowBeingEdited != -1}
 											class="absolute inset-y-0 right-0 flex items-center justify-center"
 											on:click={() => {
@@ -109,6 +111,7 @@
 						{#if allowEditing}
 							<td class="px-2 text-right">
 								<button
+									title="Duplicate"
 									class="inline-block"
 									on:click={() => {
 										newRowData = {};
@@ -121,6 +124,7 @@
 									<icon class="w-5 h-5" data-icon="document-duplicate" />
 								</button>
 								<button
+									title="Save"
 									class="inline-block text-red-400"
 									on:click={() => {
 										dispatch('delete-row', row);
