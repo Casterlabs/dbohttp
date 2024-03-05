@@ -111,8 +111,11 @@
 								<button
 									class="inline-block"
 									on:click={() => {
+										newRowData = {};
+										for (const [key, value] of Object.entries(row)) {
+											newRowData[key] = JSON.stringify(value);
+										}
 										addingRow = true;
-										newRowData = row;
 									}}
 								>
 									<icon class="w-5 h-5" data-icon="document-duplicate" />
