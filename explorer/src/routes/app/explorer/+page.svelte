@@ -15,6 +15,32 @@
 	let offset = 0;
 	let total = 0;
 
+	async function executeQuery(query: string, params: any[]) {
+		executingQuery = true;
+		document.body.focus();
+		console.log('Doing edit...', query, params);
+		await fetch(
+			$connectionUrl +
+				'?' +
+				params.map((p, idx) => idx + '=' + encodeURIComponent(JSON.stringify(p))).join('&'),
+			{
+				method: 'POST',
+				headers: new Headers({
+					Authorization: 'Bearer ' + $connectionPassword,
+					'Content-Type': 'text/plain'
+				}),
+				body: query
+			}
+		)
+			.then((response) => response.json())
+			.then((json) => {
+				if (json.error) throw `[${json.error.code}] ${json.error.message}`;
+				console.log('Successfully edited row!', json);
+			})
+			.catch(alert)
+			.finally(() => (executingQuery = false));
+	}
+
 	async function loadData() {
 		executingQuery = true;
 		try {
@@ -98,7 +124,59 @@
 </div>
 
 {#if rows.length > 0}
-	<Rows {rows} />
+	<Rows
+		allowEditing={true}
+		{rows}
+		on:edit={({ detail: data }) => {
+			const existingData = data.existingData;
+			const newValue = data.newValue;
+
+			let sql = `UPDATE '${currentTable}'`;
+			let params = [];
+
+			sql += ` SET ${newValue.col} = ?${params.length + 1} WHERE`;
+			params.push(newValue.val);
+
+			for (const [key, value] of Object.entries(existingData)) {
+				sql += ` ${key} = ?${params.length + 1} AND`;
+				params.push(value);
+			}
+			sql = sql.substring(0, sql.length - ' AND'.length); // Remove trailing AND.
+
+			executeQuery(sql + ';', params).then(loadData);
+		}}
+		on:add-row={({ detail: data }) => {
+			let sql = `INSERT INTO '${currentTable}'`;
+			let params = [];
+
+			sql += ' (';
+			for (const key of Object.keys(data)) {
+				sql += ` ${key},`;
+			}
+			sql = sql.substring(0, sql.length - 1) + ')'; // Remove trailing comma, add closing parenthesis.
+
+			sql += ' VALUES (';
+			for (const value of Object.values(data)) {
+				sql += ` ?${params.length + 1},`;
+				params.push(value);
+			}
+			sql = sql.substring(0, sql.length - 1) + ')'; // Remove trailing comma, add closing parenthesis.
+
+			executeQuery(sql + ';', params).then(loadData);
+		}}
+		on:delete-row={({ detail: data }) => {
+			let sql = `DELETE FROM '${currentTable}' WHERE`;
+			let params = [];
+
+			for (const [key, value] of Object.entries(data)) {
+				sql += ` ${key} = ?${params.length + 1} AND`;
+				params.push(value);
+			}
+			sql = sql.substring(0, sql.length - ' AND'.length); // Remove trailing AND.
+
+			executeQuery(sql + ';', params).then(loadData);
+		}}
+	/>
 
 	<div class="mt-2 mb-12 text-center text-base-11">
 		<p class="text-sm">
