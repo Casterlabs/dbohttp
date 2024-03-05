@@ -34,7 +34,7 @@
 		class="overflow-hidden text-base-12 rounded-md border border-base-6 bg-base-2 shadow-sm text-sm align-bottom"
 		style="overflow-x: auto;"
 	>
-		<table class="relative" class:mb-8={!addingRow && allowEditing}>
+		<table class="relative min-w-full" class:mb-8={!addingRow && allowEditing}>
 			<thead class="bg-base-6">
 				<tr>
 					{#each columnNames as name}
