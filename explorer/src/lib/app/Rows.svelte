@@ -43,7 +43,9 @@
 						</th>
 					{/each}
 					{#if allowEditing}
-						<th scope="col" class="opacity-0 px-2"> Actions </th>
+						<th scope="col" class="opacity-0 px-2">
+							Actions <span aria-hidden="true">spacer</span>
+						</th>
 					{/if}
 				</tr>
 			</thead>
@@ -105,9 +107,18 @@
 							</td>
 						{/each}
 						{#if allowEditing}
-							<td class="px-2">
+							<td class="px-2 text-right">
 								<button
-									class="w-full flex items-center justify-end text-red-400"
+									class="inline-block"
+									on:click={() => {
+										addingRow = true;
+										newRowData = row;
+									}}
+								>
+									<icon class="w-5 h-5" data-icon="document-duplicate" />
+								</button>
+								<button
+									class="inline-block text-red-400"
 									on:click={() => {
 										dispatch('delete-row', row);
 									}}
