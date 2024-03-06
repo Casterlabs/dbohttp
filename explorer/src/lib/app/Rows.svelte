@@ -151,6 +151,9 @@
 							<button
 								class="inline-block"
 								on:click={() => {
+									for (const [key, jsonValue] of Object.entries(newRowData)) {
+										newRowData[key] = JSON.parse(jsonValue);
+									}
 									dispatch('add-row', newRowData);
 									addingRow = false;
 								}}
