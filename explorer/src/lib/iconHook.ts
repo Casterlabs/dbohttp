@@ -1,3 +1,5 @@
+import { tick } from 'svelte';
+
 const iconCache: { [key: string]: string } = {};
 
 function replaceIcon(element: Element) {
@@ -33,8 +35,9 @@ function replaceIcon(element: Element) {
 	}
 }
 
-export default function hook() {
-	new MutationObserver((records) => {
+export default async function hook() {
+	new MutationObserver(async (records) => {
+		await tick();
 		for (const record of records) {
 			if (record.addedNodes.length > 0) {
 				for (const element of record.addedNodes) {
@@ -44,12 +47,6 @@ export default function hook() {
 					}
 				}
 			}
-
-			// SvelteKit likes to undo all of our hard work. Let's prevent that.
-			const element = record.target;
-			if (element.nodeName.toLowerCase() == 'icon') {
-				replaceIcon(element as Element);
-			}
 		}
 	}).observe(document.body, {
 		subtree: true,
@@ -57,5 +54,6 @@ export default function hook() {
 		childList: true
 	});
 
+	await tick();
 	document.querySelectorAll('icon').forEach(replaceIcon);
 }
