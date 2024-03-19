@@ -38,16 +38,7 @@ function replaceIcon(element: Element) {
 export default async function hook() {
 	new MutationObserver(async (records) => {
 		await tick();
-		for (const record of records) {
-			if (record.addedNodes.length > 0) {
-				for (const element of record.addedNodes) {
-					if (element.nodeName.toLowerCase() == 'icon') {
-						replaceIcon(element as Element);
-						break;
-					}
-				}
-			}
-		}
+		document.querySelectorAll('icon').forEach(replaceIcon);
 	}).observe(document.body, {
 		subtree: true,
 		attributes: true,
