@@ -99,7 +99,7 @@ public class Bootstrap {
 
         // Start the daemon if necessary.
         if (DBOHTTP.daemon == null) {
-            DBOHTTP.daemon = new Daemon(config.port, config.ssl);
+            DBOHTTP.daemon = new Daemon(config.port);
             DBOHTTP.daemon.open();
         } else {
             if (DBOHTTP.config.port != config.port) {
