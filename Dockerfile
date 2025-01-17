@@ -4,7 +4,7 @@ WORKDIR /home/container
 LABEL org.opencontainers.image.source="https://github.com/casterlabs/dbohttp"
 
 # code
-COPY ./target/dbohttp.jar /home/container
+COPY ./server/target/dbohttp.jar /home/container
 COPY ./docker_launch.sh /home/container
 RUN chmod +x docker_launch.sh
 
