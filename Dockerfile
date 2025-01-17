@@ -1,4 +1,4 @@
-FROM eclipse-temurin:11-jre-ubi9-minimal
+FROM eclipse-temurin:17-jre-ubi9-minimal
 WORKDIR /home/container
 
 LABEL org.opencontainers.image.source="https://github.com/casterlabs/dbohttp"
