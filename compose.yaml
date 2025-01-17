@@ -1,5 +1,5 @@
 services:
-  katana:
+  dbohttp:
     image: ghcr.io/casterlabs/dbohttp:latest
     restart: always
     environment:
