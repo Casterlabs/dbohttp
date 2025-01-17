@@ -1,0 +1,10 @@
+services:
+  katana:
+    image: ghcr.io/casterlabs/dbohttp:latest
+    restart: always
+    environment:
+      JWT_SECRET: "abc123"
+    volumes:
+      - ./database.sqlite:/home/container/database.sqlite
+    ports:
+      - 9000:8000 # Change 9000 to your liking.
