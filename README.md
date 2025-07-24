@@ -1,6 +1,10 @@
 # dbohttp / Database, Over HTTP
 
-A wrapper over SQLite that provides access over HTTP.
+A JDBC wrapper that provides access over HTTP.
+
+## Currently supported databases
+- `SQLITE`
+  - `RQLITE`. It's worth noting that rqlite already provides an HTTP API, so using dbohttp is a bit redundant. However you _can_ use it as a gateway.
 
 ## Features
 - [ ] S3 Backup 🗄️

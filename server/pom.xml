@@ -123,19 +123,29 @@
 			<scope>provided</scope>
 		</dependency> <!-- For Eclipse users -->
 
-		<dependency>
-			<groupId>com.auth0</groupId>
-			<artifactId>java-jwt</artifactId>
-			<version>4.4.0</version>
-			<scope>compile</scope>
-		</dependency>
+		<!-- SQLite -->
 		<dependency>
 			<groupId>org.xerial</groupId>
 			<artifactId>sqlite-jdbc</artifactId>
 			<version>3.48.0.0</version>
 			<scope>compile</scope>
 		</dependency>
+		
+		<!-- RQLite -->
+		<dependency>
+			<groupId>com.squareup.okhttp3</groupId>
+			<artifactId>okhttp</artifactId>
+			<version>4.12.0</version>
+			<scope>compile</scope>
+		</dependency>
 
+		<!-- Util -->
+		<dependency>
+			<groupId>com.auth0</groupId>
+			<artifactId>java-jwt</artifactId>
+			<version>4.4.0</version>
+			<scope>compile</scope>
+		</dependency>
 		<dependency>
 			<groupId>co.casterlabs</groupId>
 			<artifactId>Rakurai-Http-Server</artifactId>
@@ -148,7 +158,6 @@
 			<version>1.18.0</version>
 			<scope>compile</scope>
 		</dependency>
-
 		<dependency>
 			<groupId>com.github.e3ndr</groupId>
 			<artifactId>FastLoggingFramework</artifactId>
