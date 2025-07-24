@@ -98,7 +98,7 @@ public class Daemon implements Closeable, HttpListener {
                 .put("rowsReturned", result.rows().size());
 
             JsonObject response = new JsonObject()
-                .put("results", result.rows())
+                .put("results", result.rowsJson())
                 .put("meta", meta)
                 .putNull("error");
 

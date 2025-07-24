@@ -8,7 +8,10 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.Deque;
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.Semaphore;
 
@@ -21,6 +24,7 @@ import co.casterlabs.dbohttp.database.QueryStat;
 import co.casterlabs.dbohttp.util.MarshallingContext;
 import co.casterlabs.dbohttp.util.Profiler;
 import co.casterlabs.rakurai.json.element.JsonArray;
+import co.casterlabs.rakurai.json.element.JsonElement;
 import co.casterlabs.rakurai.json.element.JsonObject;
 import lombok.NonNull;
 import lombok.SneakyThrows;
@@ -145,7 +149,7 @@ public class SQLiteDatabase implements Database {
             }
 
             ResultSetMetaData metadata = resultSet == null ? null : resultSet.getMetaData();
-            JsonArray rows = new JsonArray();
+            List<Map<String, JsonElement>> rows = new LinkedList<>();
 
             // We want to skip the row marshalling process if we can...
             if (metadata == null || metadata.getColumnCount() == 0) {
@@ -160,7 +164,7 @@ public class SQLiteDatabase implements Database {
                     }
 
                     while ($resultSet_ptr.next()) {
-                        JsonObject row = new JsonObject();
+                        Map<String, JsonElement> row = new HashMap<>();
                         for (String columnName : columns) {
                             row.put(
                                 columnName,
@@ -264,9 +268,8 @@ public class SQLiteDatabase implements Database {
             JsonArray.EMPTY_ARRAY
         )
             .rows()
-            .toList()
             .parallelStream()
-            .map((r) -> r.getAsObject().getString("name"))
+            .map((m) -> m.get("name").getAsString())
             .toList();
     }
 

@@ -1,8 +1,16 @@
 package co.casterlabs.dbohttp.database;
 
-import co.casterlabs.dbohttp.util.Profiler;
-import co.casterlabs.rakurai.json.element.JsonArray;
+import java.util.List;
+import java.util.Map;
 
-public record QueryResult(JsonArray rows, Profiler profiler) {
+import co.casterlabs.dbohttp.util.Profiler;
+import co.casterlabs.rakurai.json.Rson;
+import co.casterlabs.rakurai.json.element.JsonElement;
+
+public record QueryResult(List<Map<String, JsonElement>> rows, Profiler profiler) {
+
+    public JsonElement rowsJson() {
+        return Rson.DEFAULT.toJson(this.rows);
+    }
 
 }
