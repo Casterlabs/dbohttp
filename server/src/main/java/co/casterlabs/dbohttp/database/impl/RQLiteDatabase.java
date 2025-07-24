@@ -61,7 +61,7 @@ public class RQLiteDatabase extends Database {
                 JsonArray arr = new JsonArray();
                 arr.add(query);
                 parameters.forEach(arr::add);
-                return arr;
+                return new JsonArray().add(arr);
             });
 
             RQLiteResponse response;
