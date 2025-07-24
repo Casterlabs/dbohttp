@@ -3,8 +3,10 @@ services:
     image: ghcr.io/casterlabs/dbohttp:latest
     restart: always
     environment:
+      DB_CONN_STR: "/home/container/database.sqlite"
+      DB_DRIVER: "SQLITE"
       JWT_SECRET: "abc123"
     volumes:
-      - ./database.sqlite:/home/container/database.sqlite
+      - ./database.sqlite:/home/container/database.sqlite # Used for SQLITE
     ports:
-      - 9000:8000 # Change 9000 to your liking.
+      - 9000:10243 # Change 9000 to your liking.
