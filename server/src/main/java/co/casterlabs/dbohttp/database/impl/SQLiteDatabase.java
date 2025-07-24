@@ -40,7 +40,7 @@ public class SQLiteDatabase implements Database {
     private long queriesTotal = 0;
 
     public SQLiteDatabase(DatabaseConfig config) throws SQLException {
-        this.conn = DriverManager.getConnection("jdbc:sqlite:" + config.file);
+        this.conn = DriverManager.getConnection("jdbc:sqlite:" + config.connectionString);
         this.conn.setAutoCommit(false);
 
         Thread cleanupThread = new Thread(() -> {
