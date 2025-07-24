@@ -155,8 +155,10 @@ public class RQLiteDatabase extends Database {
 
         @JsonDeserializationMethod("rows")
         private void $deserialize_rows(JsonElement e) throws JsonValidationException, JsonParseException {
-            for (JsonElement row : e.getAsArray()) {
-                this.rows.add(Rson.DEFAULT.fromJson(row, ROW_TT));
+            if (e.isJsonArray()) {
+                for (JsonElement row : e.getAsArray()) {
+                    this.rows.add(Rson.DEFAULT.fromJson(row, ROW_TT));
+                }
             }
         }
 
