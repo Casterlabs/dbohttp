@@ -1,4 +1,4 @@
-package co.casterlabs.dbohttp.database;
+package co.casterlabs.dbohttp.database.impl;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -13,7 +13,11 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.Semaphore;
 
 import co.casterlabs.dbohttp.config.DatabaseConfig;
+import co.casterlabs.dbohttp.database.Database;
+import co.casterlabs.dbohttp.database.QueryException;
 import co.casterlabs.dbohttp.database.QueryException.QueryErrorCode;
+import co.casterlabs.dbohttp.database.QueryResult;
+import co.casterlabs.dbohttp.database.QueryStat;
 import co.casterlabs.dbohttp.util.MarshallingContext;
 import co.casterlabs.dbohttp.util.Profiler;
 import co.casterlabs.rakurai.json.element.JsonArray;

@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.sql.SQLException;
 
 import co.casterlabs.dbohttp.database.Database;
-import co.casterlabs.dbohttp.database.SQLiteDatabase;
+import co.casterlabs.dbohttp.database.impl.SQLiteDatabase;
 import co.casterlabs.rakurai.json.annotating.JsonClass;
 import lombok.ToString;
 
