@@ -3,11 +3,9 @@ package co.casterlabs.dbohttp.database.impl;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Collections;
-import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentLinkedDeque;
 
 import co.casterlabs.dbohttp.config.DatabaseConfig;
 import co.casterlabs.dbohttp.database.Database;
@@ -23,7 +21,6 @@ import co.casterlabs.rakurai.json.annotating.JsonClass;
 import co.casterlabs.rakurai.json.annotating.JsonDeserializationMethod;
 import co.casterlabs.rakurai.json.element.JsonArray;
 import co.casterlabs.rakurai.json.element.JsonElement;
-import co.casterlabs.rakurai.json.element.JsonObject;
 import co.casterlabs.rakurai.json.serialization.JsonParseException;
 import co.casterlabs.rakurai.json.validation.JsonValidationException;
 import lombok.NonNull;
@@ -37,52 +34,16 @@ import okhttp3.Response;
 import xyz.e3ndr.fastloggingframework.logging.FastLogger;
 import xyz.e3ndr.fastloggingframework.logging.LogLevel;
 
-public class RQLiteDatabase implements Database {
+public class RQLiteDatabase extends Database {
     private static final MediaType APPLICATION_JSON = MediaType.parse("application/json");
 
     private final OkHttpClient client = new OkHttpClient();
     private final String connectionUrl;
 
-    private volatile boolean isClosed = false;
-
-    private Deque<QueryStat> stats = new ConcurrentLinkedDeque<>();
-    private long queriesTotal = 0;
-
     public RQLiteDatabase(DatabaseConfig config) throws SQLException {
+        super();
+
         this.connectionUrl = config.connectionString + "?blob_array&associative";
-
-        Thread cleanupThread = new Thread(() -> {
-            try {
-                while (!this.isClosed) {
-                    if (this.stats.size() > 10000) {
-                        // Limit it to 10k, I doubt we'll hit 10k requests per second.
-                        // This exists to prevent memory leaking from slow threads.
-                        this.stats.clear();
-                        FastLogger.logStatic(LogLevel.WARNING, "Stats grew to >100k entries. An emergency clear was performed to prevent leaks.");
-                        continue;
-                    }
-
-                    QueryStat popped = this.stats.peekFirst();
-
-                    if (popped != null) {
-                        long now = System.nanoTime();
-                        long exp = popped.expiresAt_ns();
-
-                        if (now > exp) {
-                            this.stats.removeFirst();
-                            continue; // Immediately loop back around. We only sleep when we're done.
-                        }
-                    }
-
-                    Thread.sleep(1000);
-                }
-            } catch (Throwable t) {
-                t.printStackTrace(); // TODO aaaaaaaaaaaaaaaaaaaa
-            }
-        });
-        cleanupThread.setName("Stats cleanup thread.");
-        cleanupThread.setDaemon(true);
-        cleanupThread.start();
     }
 
     @Override
@@ -159,41 +120,6 @@ public class RQLiteDatabase implements Database {
             this.stats.add(new QueryStat(System.nanoTime(), profiler.timeSpent_ms, wasSuccessful));
             this.queriesTotal++;
         }
-    }
-
-    @Override
-    public JsonObject generateReport() {
-        // Calculate the average query time using the samples. We're not worried about
-        // concurrent access or anything. Approximate values are acceptable.
-        double averageQueryTime = 0;
-        int queriesLogged = 0;
-
-        int successes = 0;
-
-        long now_ns = System.nanoTime();
-        for (QueryStat stat : this.stats) {
-            if (now_ns > stat.expiresAt_ns()) continue; // Expired, skip it (removing does nothing).
-
-            averageQueryTime += stat.took_ms();
-            queriesLogged++;
-
-            if (stat.wasSuccessful()) {
-                successes++;
-            }
-        }
-
-        double successRate = -1;
-
-        if (queriesLogged > 1) {
-            averageQueryTime /= queriesLogged; // Don't forget to divide!
-            successRate = successes / (double) queriesLogged;
-        } // Otherwise, leave it as -1.
-
-        return new JsonObject()
-            .put("successRate", successRate)
-            .put("queriesRan", this.queriesTotal)
-            .put("queriesPerSecond", queriesLogged / (double) QueryStat.STATS_TIMEFRAME_S)
-            .put("averageQueryTime", averageQueryTime);
     }
 
     @SneakyThrows
